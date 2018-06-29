@@ -1,0 +1,52 @@
+{
+  "type" : "object",
+  "id" : "urn:jsonschema:io:gravitee:policy:JsonValidationPolicyConfiguration",
+  "properties" : {
+    "errorMessage" : {
+      "title": "Http error message",
+      "description": "Http error message to send when request is not valid. Status code is 400 as Bad request.",
+      "type" : "string",
+      "x-schema-form": {
+        "type": "codemirror",
+        "codemirrorOptions": {
+          "placeholder": "Put your error message here or drag'n'drop it",
+          "lineWrapping": true,
+          "lineNumbers": true,
+          "allowDropFileTypes": true,
+          "autoCloseTags": true,
+          "mode": "json",
+          "value": "{\"error\":\"Bad request\"}"
+        }
+      }
+    },
+    "schema" : {
+      "title": "JSON Schema",
+      "description": "JSON Schema used for request payload validation",
+      "type" : "string",
+      "x-schema-form": {
+        "type": "codemirror",
+        "codemirrorOptions": {
+          "placeholder": "Put your json schema here or drag'n'drop it",
+          "lineWrapping": true,
+          "lineNumbers": true,
+          "allowDropFileTypes": true,
+          "autoCloseTags": true,
+          "mode": "javascript"
+        }
+      }
+    },
+    "validateUnchecked" : {
+      "title": "Validate unchecked",
+      "description": "Unchecked validation means that conditions which would normally cause the processing to stop with an exception are instead inserted into the resulting report. Warning: this means that anomalous events like an unresolvable JSON Reference, or an invalid schema, are masked!",
+      "type" : "boolean"
+    },
+    "deepCheck" : {
+      "title": "Deep check",
+      "description": "Instructs the validator as to whether it should validate children even if the container (array or object) fails to validate.",
+      "type" : "boolean"
+    }
+  },
+  "required": [
+    "schema"
+  ]
+}
