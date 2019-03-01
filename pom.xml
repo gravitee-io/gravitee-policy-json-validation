@@ -34,10 +34,9 @@
     </parent>
 
     <properties>
-        <gravitee-gateway-api.version>1.11.0</gravitee-gateway-api.version>
+        <gravitee-gateway-api.version>1.14.0-SNAPSHOT</gravitee-gateway-api.version>
         <gravitee-policy-api.version>1.2.0</gravitee-policy-api.version>
         <gravitee-gateway-buffer.version>1.18.0</gravitee-gateway-buffer.version>
-        <gravitee-gateway-el.version>1.18.0</gravitee-gateway-el.version>
 
         <junit.version>4.12</junit.version>
 
@@ -76,6 +75,13 @@
             <version>2.2.10</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Test scope -->
         <dependency>
             <groupId>junit</groupId>
@@ -100,18 +106,6 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>3.8.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.gravitee.el</groupId>
-            <artifactId>gravitee-expression-language</artifactId>
-            <version>1.0.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.gravitee.gateway</groupId>
-            <artifactId>gravitee-gateway-el</artifactId>
-            <version>${gravitee-gateway-el.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

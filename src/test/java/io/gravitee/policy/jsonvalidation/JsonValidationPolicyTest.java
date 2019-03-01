@@ -17,13 +17,13 @@ package io.gravitee.policy.jsonvalidation;
 
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.util.ServiceLoaderHelper;
+import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.buffer.BufferFactory;
 import io.gravitee.gateway.api.stream.ReadWriteStream;
-import io.gravitee.gateway.el.SpelTemplateEngine;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.reporter.api.http.Metrics;
@@ -81,7 +81,7 @@ public class JsonValidationPolicyTest {
         when(configuration.getErrorMessage()).thenReturn("{\"msg\":\"error\"}");
         when(configuration.getSchema()).thenReturn(jsonschema);
         when(mockRequest.metrics()).thenReturn(metrics);
-        when(mockExecutionContext.getTemplateEngine()).thenReturn(new SpelTemplateEngine());
+        when(mockExecutionContext.getTemplateEngine()).thenReturn(TemplateEngine.templateEngine());
 
         policy = new JsonValidationPolicy(configuration);
     }
