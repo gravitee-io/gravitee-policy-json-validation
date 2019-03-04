@@ -24,13 +24,13 @@
     <artifactId>gravitee-policy-json-validation</artifactId>
     <version>1.1.0-SNAPSHOT</version>
 
-    <name>Json Validation Gravitee Policy</name>
+    <name>Gravitee.io APIM - Policy - JSON Validation</name>
     <description>Description of the Json Validation Gravitee Policy</description>
 
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
-        <version>14</version>
+        <version>15</version>
     </parent>
 
     <properties>
@@ -38,8 +38,6 @@
         <gravitee-policy-api.version>1.2.0</gravitee-policy-api.version>
         <gravitee-gateway-buffer.version>1.18.0</gravitee-gateway-buffer.version>
         <gravitee-gateway-el.version>1.18.0</gravitee-gateway-el.version>
-
-        <junit.version>4.12</junit.version>
 
         <json-schema-generator-maven-plugin.version>1.3.0</json-schema-generator-maven-plugin.version>
         <json-schema-generator-maven-plugin.outputDirectory>${project.build.directory}/schemas</json-schema-generator-maven-plugin.outputDirectory>
@@ -80,13 +78,11 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>${mockito.version}</version>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -99,7 +95,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.8.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
