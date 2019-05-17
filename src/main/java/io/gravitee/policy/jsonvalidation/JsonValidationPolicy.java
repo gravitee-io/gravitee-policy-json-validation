@@ -40,6 +40,9 @@ public class JsonValidationPolicy {
 
     private final static Logger logger = LoggerFactory.getLogger(JsonValidationPolicy.class);
 
+    static final String JSON_INVALID_PAYLOAD_KEY = "JSON_INVALID_PAYLOAD";
+    static final String JSON_INVALID_FORMAT_KEY = "JSON_INVALID_FORMAT";
+
     /**
      * The associated configuration to this JsonMetadata Policy
      */
@@ -85,26 +88,26 @@ public class JsonValidationPolicy {
 
                     if (!report.isSuccess()) {
                         request.metrics().setMessage(report.toString());
-                        sendBadRequestResponse(executionContext, policyChain);
+                        sendBadRequestResponse(JSON_INVALID_PAYLOAD_KEY, executionContext, policyChain);
                     } else {
                         super.write(buffer);
                         super.end();
                     }
                 } catch (Exception ex) {
                     request.metrics().setMessage(ex.getMessage());
-                    sendBadRequestResponse(executionContext, policyChain);
+                    sendBadRequestResponse(JSON_INVALID_FORMAT_KEY, executionContext, policyChain);
                 }
             }
         };
     }
 
-    private void sendBadRequestResponse(ExecutionContext executionContext, PolicyChain policyChain) {
+    private void sendBadRequestResponse(String key, ExecutionContext executionContext, PolicyChain policyChain) {
         if (configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()) {
             String errorMessage = executionContext.getTemplateEngine().convert(configuration.getErrorMessage());
-            policyChain.streamFailWith(PolicyResult.failure(HttpStatusCode.BAD_REQUEST_400, errorMessage, MediaType.APPLICATION_JSON));
+            policyChain.streamFailWith(PolicyResult.failure(key, HttpStatusCode.BAD_REQUEST_400, errorMessage, MediaType.APPLICATION_JSON));
         } else {
             String errorMessage = "Bad request";
-            policyChain.streamFailWith(PolicyResult.failure(HttpStatusCode.BAD_REQUEST_400, errorMessage, MediaType.TEXT_PLAIN));
+            policyChain.streamFailWith(PolicyResult.failure(key, HttpStatusCode.BAD_REQUEST_400, errorMessage, MediaType.TEXT_PLAIN));
         }
     }
 }
