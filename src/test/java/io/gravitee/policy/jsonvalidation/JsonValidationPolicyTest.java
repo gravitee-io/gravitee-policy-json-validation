@@ -106,7 +106,7 @@ public class JsonValidationPolicyTest {
         readWriteStream.write(buffer);
         readWriteStream.end();
 
-        policyAssertions();
+        policyAssertions(JsonValidationPolicy.JSON_INVALID_PAYLOAD_KEY);
     }
 
     @Test
@@ -118,19 +118,19 @@ public class JsonValidationPolicyTest {
         readWriteStream.write(buffer);
         readWriteStream.end();
 
-        policyAssertions();
+        policyAssertions(JsonValidationPolicy.JSON_INVALID_PAYLOAD_KEY);
     }
 
     @Test
     public void shouldMalformedPayloadBeRejected() {
         ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
 
-        Buffer buffer = factory.buffer("{\"name\"");
+        Buffer buffer = factory.buffer("{\"name\":");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
         readWriteStream.write(buffer);
         readWriteStream.end();
 
-        policyAssertions();
+        policyAssertions(JsonValidationPolicy.JSON_INVALID_FORMAT_KEY);
     }
 
     @Test
@@ -142,16 +142,16 @@ public class JsonValidationPolicyTest {
         readWriteStream.write(buffer);
         readWriteStream.end();
 
-        policyAssertions();
+        policyAssertions(JsonValidationPolicy.JSON_INVALID_FORMAT_KEY);
     }
 
-    private void policyAssertions() {
+    private void policyAssertions(String key) {
         assertThat(metrics.getMessage()).isNotEmpty();
         ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
         verify(mockPolicychain, times(1)).streamFailWith(policyResult.capture());
         PolicyResult value = policyResult.getValue();
         assertThat(value.message()).isEqualTo(configuration.getErrorMessage());
-        assertThat(value.isFailure()).isTrue();
-        assertThat(value.httpStatusCode() == HttpStatusCode.BAD_REQUEST_400);
+        assertThat(value.statusCode() == HttpStatusCode.BAD_REQUEST_400);
+        assertThat(value.key().equals(key));
     }
 }
