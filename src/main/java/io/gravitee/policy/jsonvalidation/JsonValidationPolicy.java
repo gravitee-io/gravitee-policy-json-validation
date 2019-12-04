@@ -17,6 +17,7 @@ package io.gravitee.policy.jsonvalidation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
+import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.github.fge.jsonschema.main.JsonValidator;
@@ -26,12 +27,15 @@ import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.buffer.Buffer;
-import io.gravitee.gateway.api.stream.BufferedReadWriteStream;
+import io.gravitee.gateway.api.http.stream.TransformableRequestStreamBuilder;
+import io.gravitee.gateway.api.http.stream.TransformableResponseStreamBuilder;
 import io.gravitee.gateway.api.stream.ReadWriteStream;
-import io.gravitee.gateway.api.stream.SimpleReadWriteStream;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequestContent;
+import io.gravitee.policy.api.annotations.OnResponseContent;
+import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
+import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +46,10 @@ public class JsonValidationPolicy {
 
     static final String JSON_INVALID_PAYLOAD_KEY = "JSON_INVALID_PAYLOAD";
     static final String JSON_INVALID_FORMAT_KEY = "JSON_INVALID_FORMAT";
+    static final String JSON_INVALID_RESPONSE_PAYLOAD_KEY = "JSON_INVALID_RESPONSE_PAYLOAD";
+    static final String JSON_INVALID_RESPONSE_FORMAT_KEY = "JSON_INVALID_RESPONSE_FORMAT";
+    private final static String BAD_REQUEST = "Bad Request";
+    private final static String INTERNAL_ERROR = "Internal Error";
 
     /**
      * The associated configuration to this JsonMetadata Policy
@@ -61,53 +69,85 @@ public class JsonValidationPolicy {
 
     @OnRequestContent
     public ReadWriteStream onRequestContent(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        logger.debug("Execute json schema validation policy on request {}", request.id());
+        if (configuration.getScope() == null || configuration.getScope() == PolicyScope.REQUEST) {
+            logger.debug("Execute json schema validation policy on request {}", request.id());
+            return TransformableRequestStreamBuilder
+                    .on(request)
+                    .chain(policyChain)
+                    .transform(buffer -> {
+                        try {
+                            JsonNode schema = JsonLoader.fromString(configuration.getSchema());
+                            JsonNode content = JsonLoader.fromString(buffer.toString());
 
-        return new BufferedReadWriteStream() {
-            Buffer buffer = Buffer.buffer();
-
-            @Override
-            public SimpleReadWriteStream<Buffer> write(Buffer content) {
-                buffer.appendBuffer(content);
-                return this;
-            }
-
-            @Override
-            public void end() {
-                try {
-                    JsonNode schema = JsonLoader.fromString(configuration.getSchema());
-                    JsonNode content = JsonLoader.fromString(buffer.toString());
-
-                    ProcessingReport report;
-
-                    if (configuration.isValidateUnchecked()) {
-                        report = validator.validateUnchecked(schema, content, configuration.isDeepCheck());
-                    } else {
-                        report = validator.validate(schema, content, configuration.isDeepCheck());
-                    }
-
-                    if (!report.isSuccess()) {
-                        request.metrics().setMessage(report.toString());
-                        sendBadRequestResponse(JSON_INVALID_PAYLOAD_KEY, executionContext, policyChain);
-                    } else {
-                        super.write(buffer);
-                        super.end();
-                    }
-                } catch (Exception ex) {
-                    request.metrics().setMessage(ex.getMessage());
-                    sendBadRequestResponse(JSON_INVALID_FORMAT_KEY, executionContext, policyChain);
-                }
-            }
-        };
+                            ProcessingReport report = getReport(schema, content);
+                            if (!report.isSuccess()) {
+                                request.metrics().setMessage(report.toString());
+                                sendErrorResponse(JSON_INVALID_PAYLOAD_KEY,
+                                        executionContext, policyChain,
+                                        HttpStatusCode.BAD_REQUEST_400);
+                            }
+                        } catch (Exception ex) {
+                            request.metrics().setMessage(ex.getMessage());
+                            sendErrorResponse(JSON_INVALID_FORMAT_KEY,
+                                    executionContext, policyChain,
+                                    HttpStatusCode.BAD_REQUEST_400);
+                        }
+                        return buffer;
+                    }).build();
+        }
+        return null;
     }
 
-    private void sendBadRequestResponse(String key, ExecutionContext executionContext, PolicyChain policyChain) {
+    @OnResponseContent
+    public ReadWriteStream onResponseContent(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
+        if (configuration.getScope() == PolicyScope.RESPONSE) {
+            return TransformableResponseStreamBuilder
+                    .on(response)
+                    .chain(policyChain)
+                    .transform(buffer -> {
+                        try {
+                            JsonNode schema = JsonLoader.fromString(configuration.getSchema());
+                            JsonNode content = JsonLoader.fromString(buffer.toString());
+
+                            ProcessingReport report = getReport(schema, content);
+                            if (!report.isSuccess()) {
+                                request.metrics().setMessage(report.toString());
+                                if (!configuration.isStraightRespondMode()) {
+                                    sendErrorResponse(JSON_INVALID_RESPONSE_PAYLOAD_KEY,
+                                            executionContext, policyChain,
+                                            HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+                                }
+                            }
+
+                        } catch (Exception ex) {
+                            request.metrics().setMessage(ex.toString());
+                            if (!configuration.isStraightRespondMode()) {
+                                sendErrorResponse(JSON_INVALID_RESPONSE_FORMAT_KEY,
+                                        executionContext, policyChain,
+                                        HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+                            }
+                        }
+                        return buffer;
+                    }).build();
+        }
+        return null;
+    }
+
+    private ProcessingReport getReport(JsonNode schema, JsonNode content) throws ProcessingException {
+        if (configuration.isValidateUnchecked()) {
+            return validator.validateUnchecked(schema, content, configuration.isDeepCheck());
+        } else {
+            return validator.validate(schema, content, configuration.isDeepCheck());
+        }
+    }
+
+    private void sendErrorResponse(String key, ExecutionContext executionContext, PolicyChain policyChain, int httpStatusCode) {
         if (configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()) {
             String errorMessage = executionContext.getTemplateEngine().convert(configuration.getErrorMessage());
-            policyChain.streamFailWith(PolicyResult.failure(key, HttpStatusCode.BAD_REQUEST_400, errorMessage, MediaType.APPLICATION_JSON));
+            policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.APPLICATION_JSON));
         } else {
-            String errorMessage = "Bad request";
-            policyChain.streamFailWith(PolicyResult.failure(key, HttpStatusCode.BAD_REQUEST_400, errorMessage, MediaType.TEXT_PLAIN));
+            String errorMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
+            policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.TEXT_PLAIN));
         }
     }
 }

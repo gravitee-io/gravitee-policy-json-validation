@@ -15,6 +15,7 @@
  */
 package io.gravitee.policy.jsonvalidation;
 
+import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.util.ServiceLoaderHelper;
 import io.gravitee.el.TemplateEngine;
@@ -26,6 +27,8 @@ import io.gravitee.gateway.api.buffer.BufferFactory;
 import io.gravitee.gateway.api.stream.ReadWriteStream;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
+import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
+import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
 import io.gravitee.reporter.api.http.Metrics;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +80,10 @@ public class JsonValidationPolicyTest {
     public void beforeAll() {
         factory = ServiceLoaderHelper.loadFactory(BufferFactory.class);
         metrics = Metrics.on(System.currentTimeMillis()).build();
+        HttpHeaders headers = spy(new HttpHeaders());
 
+        when(mockRequest.headers()).thenReturn(headers);
+        when(mockResponse.headers()).thenReturn(headers);
         when(configuration.getErrorMessage()).thenReturn("{\"msg\":\"error\"}");
         when(configuration.getSchema()).thenReturn(jsonschema);
         when(mockRequest.metrics()).thenReturn(metrics);
@@ -89,6 +95,7 @@ public class JsonValidationPolicyTest {
     @Test
     public void shouldAcceptValidPayload() {
         assertThatCode(() -> {
+            when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
             ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -99,7 +106,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateRejectInvalidPayload() {
-        ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -111,7 +118,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateUncheckedRejectInvalidPayload() {
-        ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -123,7 +130,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldMalformedPayloadBeRejected() {
-        ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
 
         Buffer buffer = factory.buffer("{\"name\":");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -135,6 +142,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldMalformedJsonSchemaBeRejected() {
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
         when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
 
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
@@ -145,13 +153,87 @@ public class JsonValidationPolicyTest {
         policyAssertions(JsonValidationPolicy.JSON_INVALID_FORMAT_KEY);
     }
 
-    private void policyAssertions(String key) {
+    @Test
+    public void shouldAcceptValidResponsePayload() {
+        assertThatCode(() -> {
+            when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
+            ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+            readWriteStream.write(buffer);
+            readWriteStream.end();
+        }).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void shouldValidateResponseInvalidPayload() {
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+
+        Buffer buffer = factory.buffer("{\"name\":1}");
+        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        readWriteStream.write(buffer);
+        readWriteStream.end();
+
+        policyAssertions(JsonValidationPolicy.JSON_INVALID_RESPONSE_PAYLOAD_KEY, HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    @Test
+    public void shouldValidateResponseInvalidSchema() {
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
+
+        Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
+        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        readWriteStream.write(buffer);
+        readWriteStream.end();
+
+        policyAssertions(JsonValidationPolicy.JSON_INVALID_RESPONSE_FORMAT_KEY, HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    @Test
+    public void shouldValidateResponseInvalidPayloadStraightRespondMode() {
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.isStraightRespondMode()).thenReturn(true);
+
+        Buffer buffer = factory.buffer("{\"name\":1}");
+        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        readWriteStream.write(buffer);
+        readWriteStream.end();
+
+        policyAssertions();
+    }
+
+    @Test
+    public void shouldValidateResponseInvalidSchemaStraightRespondMode() {
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
+        when(configuration.isStraightRespondMode()).thenReturn(true);
+
+        Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
+        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        readWriteStream.write(buffer);
+        readWriteStream.end();
+
+        policyAssertions();
+    }
+
+    private void policyAssertions() {
+        assertThat(metrics.getMessage()).isNotEmpty();
+        ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
+        verify(mockPolicychain, times(0)).streamFailWith(policyResult.capture());
+    }
+
+    private void policyAssertions(String key){
+        policyAssertions(key, HttpStatusCode.BAD_REQUEST_400);
+    }
+
+    private void policyAssertions(String key, int statusCode) {
         assertThat(metrics.getMessage()).isNotEmpty();
         ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
         verify(mockPolicychain, times(1)).streamFailWith(policyResult.capture());
         PolicyResult value = policyResult.getValue();
         assertThat(value.message()).isEqualTo(configuration.getErrorMessage());
-        assertThat(value.statusCode() == HttpStatusCode.BAD_REQUEST_400);
-        assertThat(value.key().equals(key));
+        assertThat(value.statusCode()).isEqualTo(statusCode);
+        assertThat(value.key()).isEqualTo(key);
     }
 }

@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation;
+package io.gravitee.policy.jsonvalidation.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
 import io.gravitee.common.http.HttpMethod;
 
 @SuppressWarnings("unused")
 public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
+
+    private PolicyScope scope = PolicyScope.REQUEST;
 
     private String errorMessage;
 
@@ -28,6 +30,16 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
     private boolean validateUnchecked;
 
     private boolean deepCheck;
+
+    private boolean straightRespondMode;
+
+    public PolicyScope getScope() {
+        return scope;
+    }
+
+    public void setScope(PolicyScope scope) {
+        this.scope = scope;
+    }
 
     public String getSchema() {
         return schema;
@@ -60,4 +72,13 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
+
+    public boolean isStraightRespondMode() {
+        return straightRespondMode;
+    }
+
+    public void setStraightRespondMode(boolean straightRespondMode) {
+        this.straightRespondMode = straightRespondMode;
+    }
 }
+
