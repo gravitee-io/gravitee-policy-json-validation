@@ -13,14 +13,14 @@ endif::[]
 ^|onResponseContent
 
 ^.^| X
-^.^|
+^.^| X
 
 |===
 
 == Description
 
 The Json Validation policy allows json payload validation. This policy uses https://github.com/java-json-tools/json-schema-validator
-Return Error 400 BAD REQUEST when validation failed with with custom error message body.
+Return Error 400 BAD REQUEST when validation failed for requests and 500 INTERNAL ERROR for responses with custom error message body.
 Inject processing report messages into request metrics for analytics.
 
 
@@ -28,6 +28,12 @@ Inject processing report messages into request metrics for analytics.
 
 |===
 |Property |Required |Description |Type| Default
+
+.^|scope
+^.^|X
+|Policy scope from where the policy is executed.
+^.^|Policy scope
+|ON_REQUEST
 
 .^|errorMessage
 ^.^|X
@@ -53,6 +59,12 @@ Inject processing report messages into request metrics for analytics.
 ^.^|boolean
 ^.^|false
 
+.^|straightRespondMode
+^.^|
+|Only for RESPONSE scope. Straight respond mode means that responses failed to validate still will be sent to user without replacement. Validation failures messages are still being written to the metrics for further inspection.
+^.^|boolean
+^.^|false
+
 |===
 
 
@@ -61,7 +73,10 @@ Inject processing report messages into request metrics for analytics.
 |===
 |Code |Message
 
-.^| ```400```
+.^| ```400```(Request scope)
+
+```500```(Response scope)
+
 | In case of:
 
 * Invalid payload
@@ -89,6 +104,12 @@ Here are the error keys send by this policy:
 ^.^|-
 
 .^|JSON_INVALID_FORMAT
+^.^|-
+
+.^|JSON_INVALID_RESPONSE_PAYLOAD
+^.^|-
+
+.^|JSON_INVALID_RESPONSE_FORMAT
 ^.^|-
 
 |===

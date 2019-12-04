@@ -2,9 +2,16 @@
   "type" : "object",
   "id" : "urn:jsonschema:io:gravitee:policy:JsonValidationPolicyConfiguration",
   "properties" : {
+    "scope" : {
+      "title": "Scope",
+      "description": "Execute policy on <strong>request</strong> or <strong>response</strong> phase.",
+      "type" : "string",
+      "default": "REQUEST",
+      "enum" : [ "REQUEST", "RESPONSE" ]
+    },
     "errorMessage" : {
       "title": "Http error message",
-      "description": "Http error message to send when request is not valid. Status code is 400 as Bad request.",
+      "description": "Http error message to send when request is not valid. Status code is 400 as Bad request for REQUEST scope. Status code is 500 as Internal Error for RESPONSE scope (without straight respond mode).",
       "type" : "string",
       "x-schema-form": {
         "type": "codemirror",
@@ -44,6 +51,11 @@
       "title": "Deep check",
       "description": "Instructs the validator as to whether it should validate children even if the container (array or object) fails to validate.",
       "type" : "boolean"
+    },
+    "straightRespondMode" : {
+      "title": "Straight respond mode",
+      "description": "Only for RESPONSE scope. Straight respond mode means that responses failed to validate still will be sent to user without replacement. Validation failures messages are still being written to the metrics for further inspection.",
+      "type": "boolean"
     }
   },
   "required": [
