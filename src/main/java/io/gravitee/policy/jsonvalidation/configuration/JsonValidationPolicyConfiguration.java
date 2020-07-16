@@ -27,6 +27,8 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     private String schema;
 
+    private String responseStatusCodes;
+
     private boolean validateUnchecked;
 
     private boolean deepCheck;
@@ -79,6 +81,14 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     public void setStraightRespondMode(boolean straightRespondMode) {
         this.straightRespondMode = straightRespondMode;
+    }
+
+    public String getResponseStatusCodes() {
+        return responseStatusCodes;
+    }
+
+    public void setResponseStatusCodes(String responseStatusCodes) {
+        this.responseStatusCodes = responseStatusCodes;
     }
 }
 

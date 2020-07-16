@@ -9,6 +9,11 @@
       "default": "REQUEST",
       "enum" : [ "REQUEST", "RESPONSE" ]
     },
+    "responseStatusCodes" : {
+      "type" : "string",
+      "title": "Response status codes",
+      "description": "Only for RESPONSE scope. List of response codes or its ranges to be validated by provided schema. Example: 403, 500-507, 526. Leave the field blank to validate for any codes."
+    },
     "errorMessage" : {
       "title": "Http error message",
       "description": "Http error message to send when request is not valid. Status code is 400 as Bad request for REQUEST scope. Status code is 500 as Internal Error for RESPONSE scope (without straight respond mode).",

@@ -39,6 +39,8 @@ import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+
 @SuppressWarnings("unused")
 public class JsonValidationPolicy {
 
@@ -100,7 +102,7 @@ public class JsonValidationPolicy {
 
     @OnResponseContent
     public ReadWriteStream onResponseContent(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        if (configuration.getScope() == PolicyScope.RESPONSE) {
+        if (configuration.getScope() == PolicyScope.RESPONSE && targetStatusCode(response.status())) {
             return TransformableResponseStreamBuilder
                     .on(response)
                     .chain(policyChain)
@@ -149,5 +151,17 @@ public class JsonValidationPolicy {
             String errorMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
             policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.TEXT_PLAIN));
         }
+    }
+
+    private boolean targetStatusCode(int statusCode) {
+        return configuration.getResponseStatusCodes() == null ||
+                configuration.getResponseStatusCodes().equals("") ||
+                Arrays.stream(configuration.getResponseStatusCodes().split(","))
+                        .anyMatch(range -> {
+                            String[] ranges = range.split("-", 2);
+                            int min = Integer.parseInt(ranges[0].trim());
+                            int max = (ranges.length == 2 ? Integer.parseInt(ranges[1].trim()) : min);
+                            return (min <= statusCode && statusCode <= max);
+                        });
     }
 }

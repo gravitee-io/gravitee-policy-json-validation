@@ -157,6 +157,8 @@ public class JsonValidationPolicyTest {
     public void shouldAcceptValidResponsePayload() {
         assertThatCode(() -> {
             when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+            when(configuration.getResponseStatusCodes()).thenReturn("300-320, 400, 404");
+            when(mockResponse.status()).thenReturn(400);
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
             ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -215,6 +217,17 @@ public class JsonValidationPolicyTest {
         readWriteStream.end();
 
         policyAssertions();
+    }
+
+    @Test
+    public void shouldSkipResponseValidationByStatusCode() {
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.getResponseStatusCodes()).thenReturn("200, 201, 400-500");
+        when(mockResponse.status()).thenReturn(205);
+
+        Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
+        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        assertThat(readWriteStream == null);
     }
 
     private void policyAssertions() {
