@@ -33,7 +33,7 @@ Inject processing report messages into request metrics for analytics.
 ^.^|X
 |Policy scope from where the policy is executed.
 ^.^|Policy scope
-|ON_REQUEST
+|REQUEST_CONTENT
 
 .^|errorMessage
 ^.^|X

@@ -26,7 +26,6 @@ import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
-import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.http.stream.TransformableRequestStreamBuilder;
 import io.gravitee.gateway.api.http.stream.TransformableResponseStreamBuilder;
 import io.gravitee.gateway.api.stream.ReadWriteStream;
@@ -69,8 +68,8 @@ public class JsonValidationPolicy {
 
     @OnRequestContent
     public ReadWriteStream onRequestContent(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        if (configuration.getScope() == null || configuration.getScope() == PolicyScope.REQUEST) {
-            logger.debug("Execute json schema validation policy on request {}", request.id());
+        if (configuration.getScope() == null || configuration.getScope() == PolicyScope.REQUEST_CONTENT) {
+            logger.debug("Execute json schema validation policy on request content{}", request.id());
             return TransformableRequestStreamBuilder
                     .on(request)
                     .chain(policyChain)
@@ -100,7 +99,7 @@ public class JsonValidationPolicy {
 
     @OnResponseContent
     public ReadWriteStream onResponseContent(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        if (configuration.getScope() == PolicyScope.RESPONSE) {
+        if (configuration.getScope() == PolicyScope.RESPONSE_CONTENT) {
             return TransformableResponseStreamBuilder
                     .on(response)
                     .chain(policyChain)

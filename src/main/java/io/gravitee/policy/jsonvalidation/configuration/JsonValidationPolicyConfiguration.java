@@ -16,12 +16,11 @@
 package io.gravitee.policy.jsonvalidation.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
-import io.gravitee.common.http.HttpMethod;
 
 @SuppressWarnings("unused")
 public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
-    private PolicyScope scope = PolicyScope.REQUEST;
+    private PolicyScope scope = PolicyScope.REQUEST_CONTENT;
 
     private String errorMessage;
 

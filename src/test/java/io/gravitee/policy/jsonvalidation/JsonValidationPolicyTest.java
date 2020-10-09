@@ -95,7 +95,7 @@ public class JsonValidationPolicyTest {
     @Test
     public void shouldAcceptValidPayload() {
         assertThatCode(() -> {
-            when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
             ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -106,7 +106,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateRejectInvalidPayload() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -118,7 +118,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateUncheckedRejectInvalidPayload() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -130,7 +130,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldMalformedPayloadBeRejected() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
 
         Buffer buffer = factory.buffer("{\"name\":");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -142,7 +142,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldMalformedJsonSchemaBeRejected() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST);
+        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
         when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
 
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
@@ -156,7 +156,7 @@ public class JsonValidationPolicyTest {
     @Test
     public void shouldAcceptValidResponsePayload() {
         assertThatCode(() -> {
-            when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+            when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
             ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -167,7 +167,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateResponseInvalidPayload() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -179,7 +179,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateResponseInvalidSchema() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
         when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
 
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
@@ -192,7 +192,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateResponseInvalidPayloadStraightRespondMode() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
         when(configuration.isStraightRespondMode()).thenReturn(true);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
@@ -205,7 +205,7 @@ public class JsonValidationPolicyTest {
 
     @Test
     public void shouldValidateResponseInvalidSchemaStraightRespondMode() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE);
+        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
         when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
         when(configuration.isStraightRespondMode()).thenReturn(true);
 
