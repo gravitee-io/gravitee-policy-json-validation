@@ -4,10 +4,10 @@
   "properties" : {
     "scope" : {
       "title": "Scope",
-      "description": "Execute policy on <strong>request</strong> or <strong>response</strong> phase.",
+      "description": "Execute policy on <strong>request content</strong> or <strong>response content</strong> phase.",
       "type" : "string",
-      "default": "REQUEST",
-      "enum" : [ "REQUEST", "RESPONSE" ],
+      "default": "REQUEST_CONTENT",
+      "enum" : [ "REQUEST_CONTENT", "RESPONSE_CONTENT" ],
       "deprecated": "true"
     },
     "errorMessage" : {
