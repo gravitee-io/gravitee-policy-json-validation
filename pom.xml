@@ -38,6 +38,7 @@
         <gravitee-policy-api.version>1.8.0</gravitee-policy-api.version>
         <gravitee-gateway-buffer.version>3.0.9</gravitee-gateway-buffer.version>
 
+        <json-schema-validator.version>2.2.14</json-schema-validator.version>
         <swagger-parser.version>2.0.22</swagger-parser.version>
         <mockito.version>3.5.13</mockito.version>
 
@@ -73,7 +74,13 @@
         <dependency>
             <groupId>com.github.java-json-tools</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>2.2.14</version>
+            <version>${json-schema-validator.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
