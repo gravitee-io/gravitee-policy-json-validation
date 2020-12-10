@@ -1,4 +1,4 @@
-= Json Validation Policy
+= JSON validation policy
 
 ifdef::env-github[]
 image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-json-validation/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-policy-json-validation/"]
@@ -19,10 +19,9 @@ endif::[]
 
 == Description
 
-The Json Validation policy allows json payload validation. This policy uses https://github.com/java-json-tools/json-schema-validator
-Return Error 400 BAD REQUEST when validation failed for requests and 500 INTERNAL ERROR for responses with custom error message body.
-Inject processing report messages into request metrics for analytics.
-
+You can use the `json-validation` policy to validate JSON payloads. This policy uses https://github.com/java-json-tools/json-schema-validator[JSON Schema Validator^].
+It returns 400 BAD REQUEST when request validation fails and 500 INTERNAL ERROR when response validation fails, with a custom error message body.
+It can inject processing report messages into request metrics for analytics.
 
 == Configuration
 
@@ -31,13 +30,13 @@ Inject processing report messages into request metrics for analytics.
 
 .^|scope
 ^.^|X
-|Policy scope from where the policy is executed.
+|Policy scope from where the policy is executed
 ^.^|Policy scope
 |REQUEST_CONTENT
 
 .^|errorMessage
 ^.^|X
-|Custom error message in Json format. Spel is allowed.
+|Custom error message in JSON format. Spel is allowed.
 ^.^|string
 |{"error":"Bad request"}
 
@@ -49,7 +48,7 @@ Inject processing report messages into request metrics for analytics.
 
 .^|deepCheck
 ^.^|
-|Validate descendant even if json parent container is invalid.
+|Validate descendant even if JSON parent container is invalid
 ^.^|boolean
 ^.^|false
 
@@ -67,8 +66,9 @@ Inject processing report messages into request metrics for analytics.
 
 |===
 
+== Errors
 
-== Http Status Code
+== HTTP status code
 
 |===
 |Code |Message
@@ -77,23 +77,22 @@ Inject processing report messages into request metrics for analytics.
 
 ```500```(Response scope)
 
-| In case of:
+| Sent in the following cases:
 
 * Invalid payload
 
-* Invalid jsonschema
+* Invalid JSON schema
 
-* Invalid error message json format
+* Invalid error message JSON format
 
 |===
 
 == Errors
 
-If you're looking to override the default response provided by the policy, you can do it
-thanks to the response templates feature. These templates must be define at the API level (see `Response Templates`
-from the `Proxy` menu).
+You can use the response template feature to override the default response provided by the policy. These templates must be defined at the API level (see the API Console *Response Templates*
+option in the API *Proxy* menu).
 
-Here are the error keys send by this policy:
+The policy sends the following error keys:
 
 [cols="2*", options="header"]
 |===
