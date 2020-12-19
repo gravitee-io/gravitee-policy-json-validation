@@ -24,7 +24,8 @@
           "autoCloseTags": true,
           "mode": "json",
           "value": "{\"error\":\"Bad request\"}"
-        }
+        },
+        "expression-language": true
       }
     },
     "schema" : {
