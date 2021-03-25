@@ -23,6 +23,10 @@ You can use the `json-validation` policy to validate JSON payloads. This policy 
 It returns 400 BAD REQUEST when request validation fails and 500 INTERNAL ERROR when response validation fails, with a custom error message body.
 It can inject processing report messages into request metrics for analytics.
 
+=== Policy identifier
+
+You can enable or disable the policy with policy identifier `json-validation`.
+
 == Configuration
 
 |===
