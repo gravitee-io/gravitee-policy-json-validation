@@ -68,7 +68,7 @@ public class JsonValidationPolicy {
 
     @OnRequestContent
     public ReadWriteStream onRequestContent(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        if (configuration.getScope() == null || configuration.getScope() == PolicyScope.REQUEST_CONTENT) {
+        if (configuration.getScope() == null || (configuration.getScope() == PolicyScope.REQUEST_CONTENT || configuration.getScope() == PolicyScope.REQUEST)) {
             logger.debug("Execute json schema validation policy on request content{}", request.id());
             return TransformableRequestStreamBuilder
                     .on(request)
@@ -99,7 +99,7 @@ public class JsonValidationPolicy {
 
     @OnResponseContent
     public ReadWriteStream onResponseContent(Request request, Response response, ExecutionContext executionContext, PolicyChain policyChain) {
-        if (configuration.getScope() == PolicyScope.RESPONSE_CONTENT) {
+        if (configuration.getScope() == PolicyScope.RESPONSE_CONTENT || configuration.getScope() == PolicyScope.RESPONSE) {
             return TransformableResponseStreamBuilder
                     .on(response)
                     .chain(policyChain)
