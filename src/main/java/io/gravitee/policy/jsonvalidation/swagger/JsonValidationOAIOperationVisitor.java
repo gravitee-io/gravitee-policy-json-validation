@@ -26,9 +26,8 @@ import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfi
 import io.swagger.v3.core.util.Json;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * @author Florent CHAMFROY (florent.chamfroy at graviteesource.com)
@@ -36,37 +35,47 @@ import java.util.Optional;
  */
 public class JsonValidationOAIOperationVisitor implements OAIOperationVisitor {
 
-    private final ObjectMapper mapper = new ObjectMapper();
-    {
-        mapper.configure(JsonGenerator.Feature.WRITE_NUMBERS_AS_STRINGS, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    }
+  private final ObjectMapper mapper = new ObjectMapper();
 
-    @Override
-    /**
-     * openAPI has been parsed with the "resolveFully" option. As a consequence, all $ref have been replaced by proper definition.
-     */
-    public Optional<Policy> visit(io.swagger.v3.oas.models.OpenAPI openAPI, io.swagger.v3.oas.models.Operation operation) {
+  {
+    mapper.configure(JsonGenerator.Feature.WRITE_NUMBERS_AS_STRINGS, true);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+  }
 
-        String jsonSchema = null;
-        final RequestBody requestBody = operation.getRequestBody();
-        if (requestBody != null && requestBody.getContent() != null && requestBody.getContent().get("application/json") != null) {
-            final Schema schema = requestBody.getContent().get("application/json").getSchema();
-            jsonSchema = Json.pretty(schema);
-        }
-        if (!StringUtils.isEmpty(jsonSchema)) {
-            JsonValidationPolicyConfiguration configuration = new JsonValidationPolicyConfiguration();
-            try {
-                Policy policy = new Policy();
-                policy.setName("json-validation");
-                configuration.setSchema(jsonSchema);
-                policy.setConfiguration(mapper.writeValueAsString(configuration));
-                return Optional.of(policy);
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-        }
-        return Optional.empty();
+  @Override
+  /**
+   * openAPI has been parsed with the "resolveFully" option. As a consequence, all $ref have been replaced by proper definition.
+   */
+  public Optional<Policy> visit(
+    io.swagger.v3.oas.models.OpenAPI openAPI,
+    io.swagger.v3.oas.models.Operation operation
+  ) {
+    String jsonSchema = null;
+    final RequestBody requestBody = operation.getRequestBody();
+    if (
+      requestBody != null &&
+      requestBody.getContent() != null &&
+      requestBody.getContent().get("application/json") != null
+    ) {
+      final Schema schema = requestBody
+        .getContent()
+        .get("application/json")
+        .getSchema();
+      jsonSchema = Json.pretty(schema);
     }
+    if (!StringUtils.isEmpty(jsonSchema)) {
+      JsonValidationPolicyConfiguration configuration = new JsonValidationPolicyConfiguration();
+      try {
+        Policy policy = new Policy();
+        policy.setName("json-validation");
+        configuration.setSchema(jsonSchema);
+        policy.setConfiguration(mapper.writeValueAsString(configuration));
+        return Optional.of(policy);
+      } catch (JsonProcessingException e) {
+        e.printStackTrace();
+      }
+    }
+    return Optional.empty();
+  }
 }

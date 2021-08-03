@@ -16,10 +16,10 @@
 package io.gravitee.policy.jsonvalidation.configuration;
 
 public enum PolicyScope {
-    @Deprecated
-    REQUEST,
-    @Deprecated
-    RESPONSE,
-    REQUEST_CONTENT,
-    RESPONSE_CONTENT
+  @Deprecated
+  REQUEST,
+  @Deprecated
+  RESPONSE,
+  REQUEST_CONTENT,
+  RESPONSE_CONTENT,
 }

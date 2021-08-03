@@ -19,16 +19,17 @@ import io.gravitee.policy.api.swagger.Policy;
 import io.gravitee.policy.api.swagger.v2.SwaggerOperationVisitor;
 import io.swagger.models.Operation;
 import io.swagger.models.Swagger;
-
 import java.util.Optional;
 
 /**
  * @author Florent CHAMFROY (florent.chamfroy at graviteesource.com)
  * @author GraviteeSource Team
  */
-public class JsonValidationSwaggerOperationVisitor implements SwaggerOperationVisitor {
-    @Override
-    public Optional<Policy> visit(Swagger swagger, Operation o) {
-        return Optional.empty();
-    }
+public class JsonValidationSwaggerOperationVisitor
+  implements SwaggerOperationVisitor {
+
+  @Override
+  public Optional<Policy> visit(Swagger swagger, Operation o) {
+    return Optional.empty();
+  }
 }
