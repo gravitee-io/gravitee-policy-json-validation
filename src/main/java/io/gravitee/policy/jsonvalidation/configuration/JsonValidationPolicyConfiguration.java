@@ -80,4 +80,3 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
         this.straightRespondMode = straightRespondMode;
     }
 }
-

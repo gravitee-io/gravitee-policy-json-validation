@@ -15,6 +15,10 @@
  */
 package io.gravitee.policy.jsonvalidation;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.Mockito.*;
+
 import io.gravitee.common.http.HttpHeaders;
 import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.util.ServiceLoaderHelper;
@@ -37,10 +41,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.Mockito.*;
-
 @RunWith(MockitoJUnitRunner.class)
 public class JsonValidationPolicyTest {
 
@@ -61,16 +61,17 @@ public class JsonValidationPolicyTest {
 
     private BufferFactory factory;
 
-    private String jsonschema = "{\n" +
-            "    \"title\": \"Person\",\n" +
-            "    \"type\": \"object\",\n" +
-            "    \"properties\": {\n" +
-            "        \"name\": {\n" +
-            "            \"type\": \"string\"\n" +
-            "        }\n" +
-            "    },\n" +
-            "    \"required\": [\"name\"]\n" +
-            "}";
+    private String jsonschema =
+        "{\n" +
+        "    \"title\": \"Person\",\n" +
+        "    \"type\": \"object\",\n" +
+        "    \"properties\": {\n" +
+        "        \"name\": {\n" +
+        "            \"type\": \"string\"\n" +
+        "        }\n" +
+        "    },\n" +
+        "    \"required\": [\"name\"]\n" +
+        "}";
 
     private Metrics metrics;
 
@@ -95,13 +96,14 @@ public class JsonValidationPolicyTest {
     @Test
     public void shouldAcceptValidPayload() {
         assertThatCode(() -> {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
-            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
-            Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-            ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-            readWriteStream.write(buffer);
-            readWriteStream.end();
-        }).doesNotThrowAnyException();
+                when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
+                JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+                Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
+                ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+                readWriteStream.write(buffer);
+                readWriteStream.end();
+            })
+            .doesNotThrowAnyException();
     }
 
     @Test
@@ -156,13 +158,19 @@ public class JsonValidationPolicyTest {
     @Test
     public void shouldAcceptValidResponsePayload() {
         assertThatCode(() -> {
-            when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
-            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
-            Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-            ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-            readWriteStream.write(buffer);
-            readWriteStream.end();
-        }).doesNotThrowAnyException();
+                when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
+                JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+                Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
+                ReadWriteStream readWriteStream = policy.onResponseContent(
+                    mockRequest,
+                    mockResponse,
+                    mockExecutionContext,
+                    mockPolicychain
+                );
+                readWriteStream.write(buffer);
+                readWriteStream.end();
+            })
+            .doesNotThrowAnyException();
     }
 
     @Test
@@ -223,7 +231,7 @@ public class JsonValidationPolicyTest {
         verify(mockPolicychain, times(0)).streamFailWith(policyResult.capture());
     }
 
-    private void policyAssertions(String key){
+    private void policyAssertions(String key) {
         policyAssertions(key, HttpStatusCode.BAD_REQUEST_400);
     }
 
