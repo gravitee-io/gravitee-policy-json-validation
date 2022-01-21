@@ -15,6 +15,11 @@
  */
 package io.gravitee.policy.jsonvalidation.swagger;
 
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.policy.api.swagger.Policy;
 import io.swagger.v3.core.util.Json;
@@ -24,19 +29,13 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
+import java.util.HashMap;
+import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.util.HashMap;
-import java.util.Optional;
-
-import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Florent CHAMFROY (florent.chamfroy at graviteesource.com)
@@ -81,7 +80,7 @@ public class JsonValidationOAIOperationVisitorTest {
         when(requestBody.getContent()).thenReturn(content);
         when(content.get("application/json")).thenReturn(applicationJson);
 
-        try(MockedStatic<Json> theMock = Mockito.mockStatic(Json.class)) {
+        try (MockedStatic<Json> theMock = Mockito.mockStatic(Json.class)) {
             theMock.when(() -> Json.pretty(any(Schema.class))).thenReturn("");
             Optional<Policy> policy = visitor.visit(mock(OpenAPI.class), operationMock);
             assertFalse(policy.isPresent());
@@ -103,7 +102,7 @@ public class JsonValidationOAIOperationVisitorTest {
         when(content.get("application/json")).thenReturn(applicationJson);
         when(applicationJson.getSchema()).thenReturn(schema);
 
-        try(MockedStatic<Json> theMock = Mockito.mockStatic(Json.class)) {
+        try (MockedStatic<Json> theMock = Mockito.mockStatic(Json.class)) {
             theMock.when(() -> Json.pretty(any(Schema.class))).thenReturn(jsonSchema);
 
             Optional<Policy> policy = visitor.visit(mock(OpenAPI.class), operationMock);
