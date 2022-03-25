@@ -28,12 +28,15 @@ import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.buffer.BufferFactory;
+import io.gravitee.gateway.api.stream.BufferedReadWriteStream;
 import io.gravitee.gateway.api.stream.ReadWriteStream;
+import io.gravitee.gateway.api.stream.SimpleReadWriteStream;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
 import io.gravitee.reporter.api.http.Metrics;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,8 +86,6 @@ public class JsonValidationPolicyTest {
         metrics = Metrics.on(System.currentTimeMillis()).build();
         HttpHeaders headers = spy(new HttpHeaders());
 
-        when(mockRequest.headers()).thenReturn(headers);
-        when(mockResponse.headers()).thenReturn(headers);
         when(configuration.getErrorMessage()).thenReturn("{\"msg\":\"error\"}");
         when(configuration.getSchema()).thenReturn(jsonschema);
         when(mockRequest.metrics()).thenReturn(metrics);
@@ -100,8 +101,13 @@ public class JsonValidationPolicyTest {
                 JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
                 Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
                 ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+                final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
                 readWriteStream.write(buffer);
                 readWriteStream.end();
+
+                assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
             })
             .doesNotThrowAnyException();
     }
@@ -112,8 +118,13 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
 
         policyAssertions(JsonValidationPolicy.JSON_INVALID_PAYLOAD_KEY);
     }
@@ -124,8 +135,13 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
 
         policyAssertions(JsonValidationPolicy.JSON_INVALID_PAYLOAD_KEY);
     }
@@ -136,8 +152,13 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
 
         policyAssertions(JsonValidationPolicy.JSON_INVALID_FORMAT_KEY);
     }
@@ -149,8 +170,13 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
         ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
 
         policyAssertions(JsonValidationPolicy.JSON_INVALID_FORMAT_KEY);
     }
@@ -167,8 +193,12 @@ public class JsonValidationPolicyTest {
                     mockExecutionContext,
                     mockPolicychain
                 );
+                final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
                 readWriteStream.write(buffer);
                 readWriteStream.end();
+
+                assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
             })
             .doesNotThrowAnyException();
     }
@@ -179,8 +209,12 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
 
         policyAssertions(JsonValidationPolicy.JSON_INVALID_RESPONSE_PAYLOAD_KEY, HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
@@ -192,8 +226,13 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
         ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
 
         policyAssertions(JsonValidationPolicy.JSON_INVALID_RESPONSE_FORMAT_KEY, HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
@@ -205,8 +244,13 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
 
         policyAssertions();
     }
@@ -219,8 +263,13 @@ public class JsonValidationPolicyTest {
 
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
         ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+
         readWriteStream.write(buffer);
         readWriteStream.end();
+
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
 
         policyAssertions();
     }
@@ -243,5 +292,20 @@ public class JsonValidationPolicyTest {
         assertThat(value.message()).isEqualTo(configuration.getErrorMessage());
         assertThat(value.statusCode()).isEqualTo(statusCode);
         assertThat(value.key()).isEqualTo(key);
+    }
+
+    /**
+     * Replace the endHandler of the resulting ReadWriteStream of the policy execution.
+     * This endHandler will set an {@link AtomicBoolean} to {@code true} if its called.
+     * It will allow us to verify if super.end() has been called on {@link BufferedReadWriteStream#end()}
+     * @param readWriteStream: the {@link ReadWriteStream} to modify
+     * @return an AtomicBoolean set to {@code true} if {@link SimpleReadWriteStream#end()}, else {@code false}
+     */
+    private AtomicBoolean spyEndHandler(ReadWriteStream readWriteStream) {
+        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = new AtomicBoolean(false);
+        readWriteStream.endHandler(__ -> {
+            hasCalledEndOnReadWriteStreamParentClass.set(true);
+        });
+        return hasCalledEndOnReadWriteStreamParentClass;
     }
 }
