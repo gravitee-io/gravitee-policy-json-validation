@@ -26,9 +26,10 @@ import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Request;
 import io.gravitee.gateway.api.Response;
-import io.gravitee.gateway.api.http.stream.TransformableRequestStreamBuilder;
-import io.gravitee.gateway.api.http.stream.TransformableResponseStreamBuilder;
+import io.gravitee.gateway.api.buffer.Buffer;
+import io.gravitee.gateway.api.stream.BufferedReadWriteStream;
 import io.gravitee.gateway.api.stream.ReadWriteStream;
+import io.gravitee.gateway.api.stream.SimpleReadWriteStream;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.api.annotations.OnRequestContent;
@@ -53,7 +54,7 @@ public class JsonValidationPolicy {
     /**
      * The associated configuration to this JsonMetadata Policy
      */
-    private JsonValidationPolicyConfiguration configuration;
+    private final JsonValidationPolicyConfiguration configuration;
 
     private static final JsonValidator validator = JsonSchemaFactory.byDefault().getValidator();
 
@@ -75,10 +76,18 @@ public class JsonValidationPolicy {
     ) {
         if (configuration.getScope() == null || configuration.getScope() == PolicyScope.REQUEST_CONTENT) {
             logger.debug("Execute json schema validation policy on request content{}", request.id());
-            return TransformableRequestStreamBuilder
-                .on(request)
-                .chain(policyChain)
-                .transform(buffer -> {
+
+            return new BufferedReadWriteStream() {
+                final Buffer buffer = Buffer.buffer();
+
+                @Override
+                public SimpleReadWriteStream<Buffer> write(Buffer content) {
+                    buffer.appendBuffer(content);
+                    return this;
+                }
+
+                @Override
+                public void end() {
                     try {
                         JsonNode schema = JsonLoader.fromString(configuration.getSchema());
                         JsonNode content = JsonLoader.fromString(buffer.toString());
@@ -87,14 +96,18 @@ public class JsonValidationPolicy {
                         if (!report.isSuccess()) {
                             request.metrics().setMessage(report.toString());
                             sendErrorResponse(JSON_INVALID_PAYLOAD_KEY, executionContext, policyChain, HttpStatusCode.BAD_REQUEST_400);
+                        } else {
+                            if (buffer.length() > 0) {
+                                super.write(buffer);
+                            }
+                            super.end();
                         }
                     } catch (Exception ex) {
                         request.metrics().setMessage(ex.getMessage());
                         sendErrorResponse(JSON_INVALID_FORMAT_KEY, executionContext, policyChain, HttpStatusCode.BAD_REQUEST_400);
                     }
-                    return buffer;
-                })
-                .build();
+                }
+            };
         }
         return null;
     }
@@ -107,10 +120,18 @@ public class JsonValidationPolicy {
         PolicyChain policyChain
     ) {
         if (configuration.getScope() == PolicyScope.RESPONSE_CONTENT) {
-            return TransformableResponseStreamBuilder
-                .on(response)
-                .chain(policyChain)
-                .transform(buffer -> {
+            logger.debug("Execute json schema validation policy on request content{}", request.id());
+            return new BufferedReadWriteStream() {
+                final Buffer buffer = Buffer.buffer();
+
+                @Override
+                public SimpleReadWriteStream<Buffer> write(Buffer content) {
+                    buffer.appendBuffer(content);
+                    return this;
+                }
+
+                @Override
+                public void end() {
                     try {
                         JsonNode schema = JsonLoader.fromString(configuration.getSchema());
                         JsonNode content = JsonLoader.fromString(buffer.toString());
@@ -125,7 +146,12 @@ public class JsonValidationPolicy {
                                     policyChain,
                                     HttpStatusCode.INTERNAL_SERVER_ERROR_500
                                 );
+                            } else {
+                                // In Straight Respond Mode, send the response to the user without replacement.
+                                writeBufferAndEnd();
                             }
+                        } else {
+                            writeBufferAndEnd();
                         }
                     } catch (Exception ex) {
                         request.metrics().setMessage(ex.toString());
@@ -138,9 +164,15 @@ public class JsonValidationPolicy {
                             );
                         }
                     }
-                    return buffer;
-                })
-                .build();
+                }
+
+                private void writeBufferAndEnd() {
+                    if (buffer.length() > 0) {
+                        super.write(buffer);
+                    }
+                    super.end();
+                }
+            };
         }
         return null;
     }
