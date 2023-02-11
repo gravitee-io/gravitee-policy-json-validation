@@ -39,7 +39,7 @@
         <gravitee-gateway-buffer.version>3.0.13</gravitee-gateway-buffer.version>
 
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
-        <swagger-parser.version>2.0.22</swagger-parser.version>
+        <swagger-parser.version>2.1.11</swagger-parser.version>
         <mockito.version>4.4.0</mockito.version>
 
         <json-schema-generator-maven-plugin.version>1.3.0</json-schema-generator-maven-plugin.version>
