@@ -34,13 +34,14 @@
     </parent>
 
     <properties>
-        <gravitee-gateway-api.version>1.20.1</gravitee-gateway-api.version>
-        <gravitee-policy-api.version>1.8.0</gravitee-policy-api.version>
-        <gravitee-gateway-buffer.version>3.0.13</gravitee-gateway-buffer.version>
-        <gravitee-bom.version>1.0</gravitee-bom.version>
+        <gravitee-gateway-api.version>2.1.0</gravitee-gateway-api.version>
+        <gravitee-policy-api.version>1.11.0</gravitee-policy-api.version>
+        <gravitee-gateway-buffer.version>3.20.0</gravitee-gateway-buffer.version>
+        <gravitee-bom.version>4.0.1</gravitee-bom.version>
 
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
-        <swagger-parser.version>2.0.22</swagger-parser.version>
+        <swagger-parser.version>2.1.13</swagger-parser.version>
+        <rhino.version>1.7.12</rhino.version>
         <mockito.version>4.4.0</mockito.version>
 
         <json-schema-generator-maven-plugin.version>1.3.0</json-schema-generator-maven-plugin.version>
@@ -98,7 +99,17 @@
                     <groupId>com.google.guava</groupId>
                     <artifactId>guava</artifactId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>rhino</artifactId>
+                    <groupId>org.mozilla</groupId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.mozilla</groupId>
+            <artifactId>rhino</artifactId>
+            <version>${rhino.version}</version>
         </dependency>
 
         <dependency>
@@ -135,11 +146,12 @@
         </dependency>
 
         <dependency>
-            <groupId>io.gravitee.gateway</groupId>
-            <artifactId>gravitee-gateway-buffer</artifactId>
+            <groupId>io.gravitee.apim.gateway</groupId>
+            <artifactId>gravitee-apim-gateway-buffer</artifactId>
             <version>${gravitee-gateway-buffer.version}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
