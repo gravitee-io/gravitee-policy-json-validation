@@ -48,7 +48,7 @@
         <json-schema-generator-maven-plugin.outputDirectory>${project.build.directory}/schemas</json-schema-generator-maven-plugin.outputDirectory>
 
         <maven-plugin-assembly.version>3.5.0</maven-plugin-assembly.version>
-        <maven-plugin-prettier.version>0.19</maven-plugin-prettier.version>
+        <maven-plugin-prettier.version>0.22</maven-plugin-prettier.version>
         <maven-plugin-prettier.prettierjava.version>2.0.0</maven-plugin-prettier.prettierjava.version>
         <maven-plugin-properties.version>1.1.0</maven-plugin-properties.version>
 
