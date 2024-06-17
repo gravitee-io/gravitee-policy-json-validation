@@ -22,7 +22,7 @@
 
     <groupId>io.gravitee.policy</groupId>
     <artifactId>gravitee-policy-json-validation</artifactId>
-    <version>1.7.0</version>
+    <version>1.7.1</version>
 
     <name>Gravitee.io APIM - Policy - JSON Validation</name>
     <description>Validate JSON payloads</description>

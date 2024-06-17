@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/1.7.0...1.7.1) (2024-06-17)
+
+
+### Bug Fixes
+
+* improve json-schema with V4 PolicyStudio ([310021d](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/310021d2277d5937611de0633496f4a6b49294ae))
+
 # [1.7.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/1.6.2...1.7.0) (2023-12-19)
 
 
