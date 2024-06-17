@@ -1,6 +1,7 @@
 {
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "type" : "object",
-  "id" : "urn:jsonschema:io:gravitee:policy:JsonValidationPolicyConfiguration",
+  "additionalProperties": false,
   "properties" : {
     "scope" : {
       "title": "Scope",
@@ -12,8 +13,14 @@
     },
     "errorMessage" : {
       "title": "Http error message",
-      "description": "Http error message to send when request is not valid. Status code is 400 as Bad request for REQUEST scope. Status code is 500 as Internal Error for RESPONSE scope (without straight respond mode).",
+      "description": "Http error message to send when request is not valid. Status code is 400 as Bad request for REQUEST scope. Status code is 500 as Internal Error for RESPONSE scope (without straight respond mode). e.g: {\"error\":\"Bad request\"}",
       "type" : "string",
+      "format": "gio-code-editor",
+      "gioConfig": {
+        "monacoEditorConfig": {
+          "language":"json"
+        }
+      },
       "x-schema-form": {
         "type": "codemirror",
         "codemirrorOptions": {
@@ -41,6 +48,12 @@
           "allowDropFileTypes": true,
           "autoCloseTags": true,
           "mode": "javascript"
+        }
+      },
+      "format": "gio-code-editor",
+      "gioConfig": {
+        "monacoEditorConfig": {
+          "language":"json"
         }
       }
     },
