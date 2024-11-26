@@ -1,0 +1,78 @@
+{
+    "id": "a-v4-api",
+    "name": "a-v4-api",
+    "apiVersion": "1.0",
+    "definitionVersion": "4.0.0",
+    "type": "proxy",
+    "analytics": {},
+    "description": "a-v4-api",
+    "listeners": [
+        {
+            "type": "http",
+            "paths": [
+                {
+                    "path": "/a-v4-api"
+                }
+            ],
+            "entrypoints": [
+                {
+                    "type": "http-proxy"
+                }
+            ]
+        }
+    ],
+    "endpointGroups": [
+        {
+            "name": "default",
+            "type": "http-proxy",
+            "endpoints": [
+                {
+                    "name": "default",
+                    "type": "http-proxy",
+                    "weight": 1,
+                    "inheritConfiguration": false,
+                    "configuration": {
+                        "target": "http://localhost:8080/team"
+                    }
+                }
+            ]
+        }
+    ],
+    "flows": [
+        {
+            "name": "flow-1",
+            "enabled": true,
+            "selectors": [
+                {
+                    "type": "http",
+                    "path": "/",
+                    "pathOperator": "STARTS_WITH"
+                }
+            ],
+            "request": [
+                {
+                    "name": "Json validation",
+                    "description": "",
+                    "enabled": true,
+                    "policy": "json-validation",
+                    "configuration": {
+                        "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"title\": \"Example user object\",\n  \"description\": \"\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"user\": {\n      \"type\": \"string\",\n      \"description\": \"The user\"\n    }\n  },\n  \"required\": [\n    \"user\"\n  ]\n}"
+                    }
+                }
+            ],
+            "response": [
+                {
+                    "name": "Json validation",
+                    "description": "",
+                    "enabled": true,
+                    "policy": "json-validation",
+                    "configuration": {
+                        "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"title\": \"Example user object\",\n  \"description\": \"\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"user\": {\n      \"type\": \"string\",\n      \"description\": \"The user\"\n    }\n  },\n  \"required\": [\n    \"user\"\n  ]\n}"
+                    }
+                }
+            ],
+            "subscribe": [],
+            "publish": []
+        }
+    ]
+}

@@ -9,6 +9,8 @@ endif::[]
 
 == Phase
 
+=== V3 engine
+
 [cols="2*", options="header"]
 |===
 ^|onRequestContent
@@ -16,7 +18,21 @@ endif::[]
 
 ^.^| X
 ^.^| X
+|===
 
+=== V4 engine
+
+[cols="4*", options="header"]
+|===
+^|onRequest
+^|onResponse
+^|onMessageRequest
+^|onMessageResponse
+
+^.^| X
+^.^| X
+^.^| X
+^.^| X
 |===
 
 == Description
@@ -29,7 +45,8 @@ It can inject processing report messages into request metrics for analytics.
 
 |===
 | Plugin version | APIM version
-| 1.x            | All supported versions
+| 1.x            | 4.5 and lower
+| 2.x            | 4.6 and greater
 |===
 
 == Configuration
@@ -82,9 +99,9 @@ It can inject processing report messages into request metrics for analytics.
 |===
 |Code |Message
 
-.^| ```400```(Request scope)
+.^| `400`(Request scope)
 
-```500```(Response scope)
+`500`(Response scope)
 
 | Sent in the following cases:
 

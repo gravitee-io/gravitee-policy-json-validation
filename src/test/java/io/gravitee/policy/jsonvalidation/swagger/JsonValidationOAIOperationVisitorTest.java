@@ -15,7 +15,7 @@
  */
 package io.gravitee.policy.jsonvalidation.swagger;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -31,20 +31,17 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.HashMap;
 import java.util.Optional;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * @author Florent CHAMFROY (florent.chamfroy at graviteesource.com)
  * @author GraviteeSource Team
  */
-@RunWith(MockitoJUnitRunner.class)
 public class JsonValidationOAIOperationVisitorTest {
 
-    private JsonValidationOAIOperationVisitor visitor = new JsonValidationOAIOperationVisitor();
+    private final JsonValidationOAIOperationVisitor visitor = new JsonValidationOAIOperationVisitor();
 
     @Test
     public void operationWithoutRequestBody() {
@@ -52,7 +49,7 @@ public class JsonValidationOAIOperationVisitorTest {
 
         when(operationMock.getRequestBody()).thenReturn(null);
         Optional<Policy> policy = visitor.visit(mock(OpenAPI.class), operationMock);
-        assertFalse(policy.isPresent());
+        assertThat(policy).isEmpty();
     }
 
     @Test
@@ -66,7 +63,7 @@ public class JsonValidationOAIOperationVisitorTest {
         when(content.get("application/json")).thenReturn(null);
 
         Optional<Policy> policy = visitor.visit(mock(OpenAPI.class), operationMock);
-        assertFalse(policy.isPresent());
+        assertThat(policy).isEmpty();
     }
 
     @Test
@@ -83,7 +80,7 @@ public class JsonValidationOAIOperationVisitorTest {
         try (MockedStatic<Json> theMock = Mockito.mockStatic(Json.class)) {
             theMock.when(() -> Json.pretty(any(Schema.class))).thenReturn("");
             Optional<Policy> policy = visitor.visit(mock(OpenAPI.class), operationMock);
-            assertFalse(policy.isPresent());
+            assertThat(policy).isEmpty();
         }
     }
 
@@ -93,25 +90,24 @@ public class JsonValidationOAIOperationVisitorTest {
 
         Operation operationMock = mock(Operation.class);
 
-        Schema schema = mock(Schema.class);
         MediaType applicationJson = mock(MediaType.class);
         Content content = mock(Content.class);
         RequestBody requestBody = mock(RequestBody.class);
         when(operationMock.getRequestBody()).thenReturn(requestBody);
         when(requestBody.getContent()).thenReturn(content);
         when(content.get("application/json")).thenReturn(applicationJson);
-        when(applicationJson.getSchema()).thenReturn(schema);
+        when(applicationJson.getSchema()).thenReturn(mock(Schema.class));
 
         try (MockedStatic<Json> theMock = Mockito.mockStatic(Json.class)) {
             theMock.when(() -> Json.pretty(any(Schema.class))).thenReturn(jsonSchema);
 
             Optional<Policy> policy = visitor.visit(mock(OpenAPI.class), operationMock);
-            assertTrue(policy.isPresent());
+            assertThat(policy).isPresent();
 
             String configuration = policy.get().getConfiguration();
-            assertNotNull(configuration);
-            HashMap readConfig = new ObjectMapper().readValue(configuration, HashMap.class);
-            assertEquals(jsonSchema, readConfig.get("schema"));
+            assertThat(configuration).isNotNull();
+            var readConfig = new ObjectMapper().readValue(configuration, HashMap.class);
+            assertThat(jsonSchema).isEqualTo(readConfig.get("schema"));
         }
     }
 }

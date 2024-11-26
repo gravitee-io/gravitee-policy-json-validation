@@ -15,183 +15,182 @@
  */
 package io.gravitee.policy.jsonvalidation;
 
+import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.Source.MESSAGE_REQUEST;
+import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.Source.MESSAGE_RESPONSE;
+
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.github.fge.jackson.JsonLoader;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.github.fge.jsonschema.core.report.ProcessingReport;
-import com.github.fge.jsonschema.main.JsonSchemaFactory;
-import com.github.fge.jsonschema.main.JsonValidator;
-import io.gravitee.common.http.HttpStatusCode;
 import io.gravitee.common.http.MediaType;
-import io.gravitee.gateway.api.ExecutionContext;
-import io.gravitee.gateway.api.Request;
-import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.buffer.Buffer;
-import io.gravitee.gateway.api.stream.BufferedReadWriteStream;
-import io.gravitee.gateway.api.stream.ReadWriteStream;
-import io.gravitee.gateway.api.stream.SimpleReadWriteStream;
-import io.gravitee.policy.api.PolicyChain;
-import io.gravitee.policy.api.PolicyResult;
-import io.gravitee.policy.api.annotations.OnRequestContent;
-import io.gravitee.policy.api.annotations.OnResponseContent;
+import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.message.Message;
+import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
-import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
+import io.gravitee.policy.v3.jsonvalidation.JsonValidationPolicyV3;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Maybe;
+import java.io.IOException;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("unused")
-public class JsonValidationPolicy {
+public class JsonValidationPolicy extends JsonValidationPolicyV3 implements HttpPolicy {
 
-    private static final Logger logger = LoggerFactory.getLogger(JsonValidationPolicy.class);
+    private static final Logger log = LoggerFactory.getLogger(JsonValidationPolicy.class);
+    public static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
-    static final String JSON_INVALID_PAYLOAD_KEY = "JSON_INVALID_PAYLOAD";
-    static final String JSON_INVALID_FORMAT_KEY = "JSON_INVALID_FORMAT";
-    static final String JSON_INVALID_RESPONSE_PAYLOAD_KEY = "JSON_INVALID_RESPONSE_PAYLOAD";
-    static final String JSON_INVALID_RESPONSE_FORMAT_KEY = "JSON_INVALID_RESPONSE_FORMAT";
-    private static final String BAD_REQUEST = "Bad Request";
-    private static final String INTERNAL_ERROR = "Internal Error";
-
-    /**
-     * The associated configuration to this JsonMetadata Policy
-     */
-    private final JsonValidationPolicyConfiguration configuration;
-
-    private static final JsonValidator validator = JsonSchemaFactory.byDefault().getValidator();
+    private final JsonNode schema;
+    private final boolean straightRespond;
 
     /**
      * Create a new JsonMetadata Policy instance based on its associated configuration
      *
      * @param configuration the associated configuration to the new JsonMetadata Policy instance
      */
-    public JsonValidationPolicy(JsonValidationPolicyConfiguration configuration) {
-        this.configuration = configuration;
+    public JsonValidationPolicy(JsonValidationPolicyConfiguration configuration) throws IOException {
+        super(configuration);
+        schema = JsonLoader.fromString(configuration.getSchema());
+        straightRespond = configuration.isStraightRespondMode();
     }
 
-    @OnRequestContent
-    public ReadWriteStream onRequestContent(
-        Request request,
-        Response response,
-        ExecutionContext executionContext,
-        PolicyChain policyChain
+    @Override
+    public String id() {
+        return "json-validation";
+    }
+
+    @Override
+    public Completable onRequest(HttpPlainExecutionContext ctx) {
+        return ctx
+            .request()
+            .body()
+            .flatMapCompletable(buffer -> validate(ctx, buffer, Source.REQUEST, false, JsonValidationPolicy::interrupt))
+            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), Source.REQUEST, JsonValidationPolicy::interrupt));
+    }
+
+    @Override
+    public Completable onResponse(HttpPlainExecutionContext ctx) {
+        return ctx
+            .response()
+            .body()
+            .flatMapCompletable(buffer ->
+                validate(ctx, buffer, Source.RESPONSE, configuration.isStraightRespondMode(), JsonValidationPolicy::interrupt)
+            )
+            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), Source.RESPONSE, JsonValidationPolicy::interrupt));
+    }
+
+    @Override
+    public Completable onMessageRequest(HttpMessageExecutionContext ctx) {
+        return ctx
+            .request()
+            .onMessages(e ->
+                e
+                    .map(Message::content)
+                    .flatMapCompletable(buffer -> validate(ctx, buffer, MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt))
+                    .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt))
+                    .toFlowable()
+            );
+    }
+
+    @Override
+    public Completable onMessageResponse(HttpMessageExecutionContext ctx) {
+        return ctx
+            .response()
+            .onMessages(e ->
+                e
+                    .map(Message::content)
+                    .flatMapCompletable(buffer -> validate(ctx, buffer, MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt))
+                    .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt))
+                    .toFlowable()
+            );
+    }
+
+    private <T extends HttpBaseExecutionContext> Completable validate(
+        T ctx,
+        Buffer buffer,
+        Source source,
+        boolean straightMode,
+        BiFunction<T, ExecutionFailure, Completable> interrupt
+    ) throws IOException, ProcessingException {
+        JsonNode jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
+        var report = configuration.isValidateUnchecked()
+            ? validator.validateUnchecked(schema, jsonNode)
+            : validator.validate(schema, jsonNode);
+        if (!report.isSuccess()) {
+            log.debug("Invalid body '{}'", report);
+        }
+        return report.isSuccess()
+            ? Completable.complete()
+            : errorHandling(ctx, report.toString(), source.status, source.getPayloadKey(), straightMode, interrupt);
+    }
+
+    private <T extends HttpBaseExecutionContext> Completable errorHandling(
+        T ctx,
+        String th,
+        Source source,
+        BiFunction<T, ExecutionFailure, Completable> interrupt
     ) {
-        if (configuration.getScope() == null || configuration.getScope() == PolicyScope.REQUEST_CONTENT) {
-            logger.debug("Execute json schema validation policy on request content{}", request.id());
-
-            return new BufferedReadWriteStream() {
-                final Buffer buffer = Buffer.buffer();
-
-                @Override
-                public SimpleReadWriteStream<Buffer> write(Buffer content) {
-                    buffer.appendBuffer(content);
-                    return this;
-                }
-
-                @Override
-                public void end() {
-                    try {
-                        JsonNode schema = JsonLoader.fromString(configuration.getSchema());
-                        JsonNode content = JsonLoader.fromString(buffer.toString());
-
-                        ProcessingReport report = getReport(schema, content);
-                        if (!report.isSuccess()) {
-                            request.metrics().setMessage(report.toString());
-                            sendErrorResponse(JSON_INVALID_PAYLOAD_KEY, executionContext, policyChain, HttpStatusCode.BAD_REQUEST_400);
-                        } else {
-                            if (buffer.length() > 0) {
-                                super.write(buffer);
-                            }
-                            super.end();
-                        }
-                    } catch (Exception ex) {
-                        request.metrics().setMessage(ex.getMessage());
-                        sendErrorResponse(JSON_INVALID_FORMAT_KEY, executionContext, policyChain, HttpStatusCode.BAD_REQUEST_400);
-                    }
-                }
-            };
-        }
-        return null;
+        return errorHandling(ctx, th, source.status, source.getFormatKey(), false, interrupt);
     }
 
-    @OnResponseContent
-    public ReadWriteStream onResponseContent(
-        Request request,
-        Response response,
-        ExecutionContext executionContext,
-        PolicyChain policyChain
+    private <T extends HttpBaseExecutionContext> Completable errorHandling(
+        T ctx,
+        String th,
+        int statusCode,
+        String key,
+        boolean straightMode,
+        BiFunction<T, ExecutionFailure, Completable> interrupt
     ) {
-        if (configuration.getScope() == PolicyScope.RESPONSE_CONTENT) {
-            logger.debug("Execute json schema validation policy on request content{}", request.id());
-            return new BufferedReadWriteStream() {
-                final Buffer buffer = Buffer.buffer();
-
-                @Override
-                public SimpleReadWriteStream<Buffer> write(Buffer content) {
-                    buffer.appendBuffer(content);
-                    return this;
-                }
-
-                @Override
-                public void end() {
-                    try {
-                        JsonNode schema = JsonLoader.fromString(configuration.getSchema());
-                        JsonNode content = JsonLoader.fromString(buffer.toString());
-
-                        ProcessingReport report = getReport(schema, content);
-                        if (!report.isSuccess()) {
-                            request.metrics().setMessage(report.toString());
-                            if (!configuration.isStraightRespondMode()) {
-                                sendErrorResponse(
-                                    JSON_INVALID_RESPONSE_PAYLOAD_KEY,
-                                    executionContext,
-                                    policyChain,
-                                    HttpStatusCode.INTERNAL_SERVER_ERROR_500
-                                );
-                            } else {
-                                // In Straight Respond Mode, send the response to the user without replacement.
-                                writeBufferAndEnd();
-                            }
-                        } else {
-                            writeBufferAndEnd();
-                        }
-                    } catch (Exception ex) {
-                        request.metrics().setMessage(ex.toString());
-                        if (!configuration.isStraightRespondMode()) {
-                            sendErrorResponse(
-                                JSON_INVALID_RESPONSE_FORMAT_KEY,
-                                executionContext,
-                                policyChain,
-                                HttpStatusCode.INTERNAL_SERVER_ERROR_500
-                            );
-                        }
-                    }
-                }
-
-                private void writeBufferAndEnd() {
-                    if (buffer.length() > 0) {
-                        super.write(buffer);
-                    }
-                    super.end();
-                }
-            };
-        }
-        return null;
+        ctx.metrics().setErrorMessage(th);
+        return straightMode
+            ? Completable.complete()
+            : errorMessage(ctx, statusCode)
+                .flatMapCompletable(msg ->
+                    interrupt.apply(ctx, new ExecutionFailure(statusCode).contentType(MediaType.APPLICATION_JSON).key(key).message(msg))
+                );
     }
 
-    private ProcessingReport getReport(JsonNode schema, JsonNode content) throws ProcessingException {
-        if (configuration.isValidateUnchecked()) {
-            return validator.validateUnchecked(schema, content, configuration.isDeepCheck());
-        } else {
-            return validator.validate(schema, content, configuration.isDeepCheck());
-        }
+    private Maybe<String> errorMessage(HttpBaseExecutionContext executionContext, int httpStatusCode) {
+        String defaultMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
+        return configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()
+            ? executionContext.getTemplateEngine().eval(configuration.getErrorMessage(), String.class)
+            : Maybe.just(defaultMessage);
     }
 
-    private void sendErrorResponse(String key, ExecutionContext executionContext, PolicyChain policyChain, int httpStatusCode) {
-        if (configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()) {
-            String errorMessage = executionContext.getTemplateEngine().convert(configuration.getErrorMessage());
-            policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.APPLICATION_JSON));
-        } else {
-            String errorMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
-            policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.TEXT_PLAIN));
+    private static Completable interrupt(HttpPlainExecutionContext ctx, ExecutionFailure executionFailure) {
+        return ctx.interruptWith(executionFailure);
+    }
+
+    private static Completable interrupt(HttpMessageExecutionContext ctx, ExecutionFailure executionFailure) {
+        return ctx.interruptMessageWith(executionFailure).ignoreElement();
+    }
+
+    enum Source {
+        REQUEST("JSON_INVALID_PAYLOAD", "JSON_INVALID_FORMAT", 400),
+        RESPONSE("JSON_INVALID_RESPONSE_FORMAT", "JSON_INVALID_RESPONSE_PAYLOAD", 500),
+        MESSAGE_REQUEST("JSON_INVALID_MESSAGE_REQUEST_PAYLOAD", "JSON_INVALID_MESSAGE_REQUEST_FORMAT", 400),
+        MESSAGE_RESPONSE("JSON_INVALID_MESSAGE_REQUEST_PAYLOAD", "JSON_INVALID_MESSAGE_REQUEST_FORMAT", 500);
+
+        private final String invalidPayloadKey;
+        private final String invalidFormatKey;
+        private final int status;
+
+        Source(String invalidPayloadKey, String invalidFormatKey, int status) {
+            this.invalidPayloadKey = invalidPayloadKey;
+            this.invalidFormatKey = invalidFormatKey;
+            this.status = status;
+        }
+
+        String getPayloadKey() {
+            return invalidPayloadKey;
+        }
+
+        String getFormatKey() {
+            return invalidFormatKey;
         }
     }
 }
