@@ -40,6 +40,14 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
         this.scope = scope;
     }
 
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
     public String getSchema() {
         return schema;
     }
@@ -62,14 +70,6 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     public void setDeepCheck(boolean deepCheck) {
         this.deepCheck = deepCheck;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
     }
 
     public boolean isStraightRespondMode() {

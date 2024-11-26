@@ -16,18 +16,20 @@
 package io.gravitee.policy.jsonvalidation.swagger;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.gravitee.policy.api.swagger.Policy;
 import io.gravitee.policy.api.swagger.v3.OAIOperationVisitor;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.swagger.v3.core.util.Json;
-import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Florent CHAMFROY (florent.chamfroy at graviteesource.com)
@@ -35,27 +37,28 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class JsonValidationOAIOperationVisitor implements OAIOperationVisitor {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger logger = LoggerFactory.getLogger(JsonValidationOAIOperationVisitor.class);
 
-    {
-        mapper.configure(JsonGenerator.Feature.WRITE_NUMBERS_AS_STRINGS, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    }
+    private final ObjectMapper mapper = JsonMapper
+        .builder()
+        .configure(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS, true)
+        .serializationInclusion(JsonInclude.Include.NON_NULL)
+        .enable(SerializationFeature.INDENT_OUTPUT)
+        .build();
 
-    @Override
     /**
      * openAPI has been parsed with the "resolveFully" option. As a consequence, all $ref have been replaced by proper definition.
      */
+    @Override
     public Optional<Policy> visit(io.swagger.v3.oas.models.OpenAPI openAPI, io.swagger.v3.oas.models.Operation operation) {
         String jsonSchema = null;
         final RequestBody requestBody = operation.getRequestBody();
         if (requestBody != null && requestBody.getContent() != null && requestBody.getContent().get("application/json") != null) {
-            final Schema schema = requestBody.getContent().get("application/json").getSchema();
+            final var schema = requestBody.getContent().get("application/json").getSchema();
             jsonSchema = Json.pretty(schema);
         }
         if (!StringUtils.isEmpty(jsonSchema)) {
-            JsonValidationPolicyConfiguration configuration = new JsonValidationPolicyConfiguration();
+            var configuration = new JsonValidationPolicyConfiguration();
             try {
                 Policy policy = new Policy();
                 policy.setName("json-validation");
@@ -63,7 +66,7 @@ public class JsonValidationOAIOperationVisitor implements OAIOperationVisitor {
                 policy.setConfiguration(mapper.writeValueAsString(configuration));
                 return Optional.of(policy);
             } catch (JsonProcessingException e) {
-                e.printStackTrace();
+                logger.error("Failed to serialize json configuration", e);
             }
         }
         return Optional.empty();

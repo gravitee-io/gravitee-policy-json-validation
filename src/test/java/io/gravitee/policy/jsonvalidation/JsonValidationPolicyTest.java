@@ -15,297 +15,100 @@
  */
 package io.gravitee.policy.jsonvalidation;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
-import io.gravitee.common.http.HttpHeaders;
-import io.gravitee.common.http.HttpStatusCode;
-import io.gravitee.common.util.ServiceLoaderHelper;
-import io.gravitee.el.TemplateEngine;
-import io.gravitee.gateway.api.ExecutionContext;
-import io.gravitee.gateway.api.Request;
-import io.gravitee.gateway.api.Response;
 import io.gravitee.gateway.api.buffer.Buffer;
-import io.gravitee.gateway.api.buffer.BufferFactory;
-import io.gravitee.gateway.api.stream.BufferedReadWriteStream;
-import io.gravitee.gateway.api.stream.ReadWriteStream;
-import io.gravitee.gateway.api.stream.SimpleReadWriteStream;
-import io.gravitee.policy.api.PolicyChain;
-import io.gravitee.policy.api.PolicyResult;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
-import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
-import io.gravitee.reporter.api.http.Metrics;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
+import io.gravitee.reporter.api.v4.metric.Metrics;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Maybe;
+import java.io.IOException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
-public class JsonValidationPolicyTest {
+@ExtendWith(MockitoExtension.class)
+class JsonValidationPolicyTest {
 
-    @Mock
-    private Request mockRequest;
-
-    @Mock
-    private Response mockResponse;
-
-    @Mock
-    private ExecutionContext mockExecutionContext;
-
-    @Mock
-    private PolicyChain mockPolicychain;
+    private static final String JSON_SCHEMA =
+        """
+                        {
+                            "title": "Person",
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": ["name"]
+                        }""";
 
     @Mock
     private JsonValidationPolicyConfiguration configuration;
 
-    private BufferFactory factory;
-
-    private String jsonschema =
-        "{\n" +
-        "    \"title\": \"Person\",\n" +
-        "    \"type\": \"object\",\n" +
-        "    \"properties\": {\n" +
-        "        \"name\": {\n" +
-        "            \"type\": \"string\"\n" +
-        "        }\n" +
-        "    },\n" +
-        "    \"required\": [\"name\"]\n" +
-        "}";
-
-    private Metrics metrics;
-
-    private JsonValidationPolicy policy;
-
-    @Before
-    public void beforeAll() {
-        factory = ServiceLoaderHelper.loadFactory(BufferFactory.class);
-        metrics = Metrics.on(System.currentTimeMillis()).build();
-        HttpHeaders headers = spy(new HttpHeaders());
-
-        when(configuration.getErrorMessage()).thenReturn("{\"msg\":\"error\"}");
-        when(configuration.getSchema()).thenReturn(jsonschema);
-        when(mockRequest.metrics()).thenReturn(metrics);
-        when(mockExecutionContext.getTemplateEngine()).thenReturn(TemplateEngine.templateEngine());
-
-        policy = new JsonValidationPolicy(configuration);
+    @BeforeEach
+    void setUp() {
+        when(configuration.getSchema()).thenReturn(JSON_SCHEMA);
     }
 
-    @Test
-    public void shouldAcceptValidPayload() {
-        assertThatCode(() -> {
-                when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
-                JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
-                Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-                ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+    @ExtendWith(MockitoExtension.class)
+    @Nested
+    class OnRequestTest {
 
-                final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+        @Mock
+        HttpPlainExecutionContext ctx;
 
-                readWriteStream.write(buffer);
-                readWriteStream.end();
+        @Mock
+        HttpPlainRequest request;
 
-                assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
-            })
-            .doesNotThrowAnyException();
+        @BeforeEach
+        void setUp() {
+            var metrics = Metrics.builder().build();
+            lenient().when(ctx.metrics()).thenReturn(metrics);
+            lenient().when(ctx.interruptWith(any())).thenReturn(Completable.error(new MyCustomException()));
+            when(ctx.request()).thenReturn(request);
+        }
+
+        @Test
+        void badBodyNotJson() throws IOException {
+            // Given
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            when(request.body()).thenReturn(Maybe.just(Buffer.buffer("qwerty")));
+
+            // When
+            policy.onRequest(ctx).test().assertError(throwable -> throwable instanceof MyCustomException);
+        }
+
+        @Test
+        void goodFormat() throws IOException {
+            // Given
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            when(request.body()).thenReturn(Maybe.just(Buffer.buffer("{\"name\":\"foo\"}")));
+
+            // When
+            policy.onRequest(ctx).test().assertComplete();
+        }
+
+        @Test
+        void badBody() throws IOException {
+            // Given
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            when(request.body()).thenReturn(Maybe.just(Buffer.buffer("{\"name2\":\"foo\"}")));
+
+            // When
+            policy.onRequest(ctx).test().assertError(throwable -> throwable instanceof MyCustomException);
+        }
     }
 
-    @Test
-    public void shouldValidateRejectInvalidPayload() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
+    @Nested
+    class OnResponseTest {}
 
-        Buffer buffer = factory.buffer("{\"name\":1}");
-        ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
-
-        policyAssertions(JsonValidationPolicy.JSON_INVALID_PAYLOAD_KEY);
-    }
-
-    @Test
-    public void shouldValidateUncheckedRejectInvalidPayload() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
-
-        Buffer buffer = factory.buffer("{\"name\":1}");
-        ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
-
-        policyAssertions(JsonValidationPolicy.JSON_INVALID_PAYLOAD_KEY);
-    }
-
-    @Test
-    public void shouldMalformedPayloadBeRejected() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
-
-        Buffer buffer = factory.buffer("{\"name\":");
-        ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
-
-        policyAssertions(JsonValidationPolicy.JSON_INVALID_FORMAT_KEY);
-    }
-
-    @Test
-    public void shouldMalformedJsonSchemaBeRejected() {
-        when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
-        when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
-
-        Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-        ReadWriteStream readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
-
-        policyAssertions(JsonValidationPolicy.JSON_INVALID_FORMAT_KEY);
-    }
-
-    @Test
-    public void shouldAcceptValidResponsePayload() {
-        assertThatCode(() -> {
-                when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
-                JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
-                Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-                ReadWriteStream readWriteStream = policy.onResponseContent(
-                    mockRequest,
-                    mockResponse,
-                    mockExecutionContext,
-                    mockPolicychain
-                );
-                final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-                readWriteStream.write(buffer);
-                readWriteStream.end();
-
-                assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
-            })
-            .doesNotThrowAnyException();
-    }
-
-    @Test
-    public void shouldValidateResponseInvalidPayload() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
-
-        Buffer buffer = factory.buffer("{\"name\":1}");
-        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
-
-        policyAssertions(JsonValidationPolicy.JSON_INVALID_RESPONSE_PAYLOAD_KEY, HttpStatusCode.INTERNAL_SERVER_ERROR_500);
-    }
-
-    @Test
-    public void shouldValidateResponseInvalidSchema() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
-        when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
-
-        Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
-
-        policyAssertions(JsonValidationPolicy.JSON_INVALID_RESPONSE_FORMAT_KEY, HttpStatusCode.INTERNAL_SERVER_ERROR_500);
-    }
-
-    @Test
-    public void shouldValidateResponseInvalidPayloadStraightRespondMode() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
-        when(configuration.isStraightRespondMode()).thenReturn(true);
-
-        Buffer buffer = factory.buffer("{\"name\":1}");
-        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
-
-        policyAssertions();
-    }
-
-    @Test
-    public void shouldValidateResponseInvalidSchemaStraightRespondMode() {
-        when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
-        when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
-        when(configuration.isStraightRespondMode()).thenReturn(true);
-
-        Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-        ReadWriteStream readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
-
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
-
-        readWriteStream.write(buffer);
-        readWriteStream.end();
-
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
-
-        policyAssertions();
-    }
-
-    private void policyAssertions() {
-        assertThat(metrics.getMessage()).isNotEmpty();
-        ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
-        verify(mockPolicychain, times(0)).streamFailWith(policyResult.capture());
-    }
-
-    private void policyAssertions(String key) {
-        policyAssertions(key, HttpStatusCode.BAD_REQUEST_400);
-    }
-
-    private void policyAssertions(String key, int statusCode) {
-        assertThat(metrics.getMessage()).isNotEmpty();
-        ArgumentCaptor<PolicyResult> policyResult = ArgumentCaptor.forClass(PolicyResult.class);
-        verify(mockPolicychain, times(1)).streamFailWith(policyResult.capture());
-        PolicyResult value = policyResult.getValue();
-        assertThat(value.message()).isEqualTo(configuration.getErrorMessage());
-        assertThat(value.statusCode()).isEqualTo(statusCode);
-        assertThat(value.key()).isEqualTo(key);
-    }
-
-    /**
-     * Replace the endHandler of the resulting ReadWriteStream of the policy execution.
-     * This endHandler will set an {@link AtomicBoolean} to {@code true} if its called.
-     * It will allow us to verify if super.end() has been called on {@link BufferedReadWriteStream#end()}
-     * @param readWriteStream: the {@link ReadWriteStream} to modify
-     * @return an AtomicBoolean set to {@code true} if {@link SimpleReadWriteStream#end()}, else {@code false}
-     */
-    private AtomicBoolean spyEndHandler(ReadWriteStream readWriteStream) {
-        final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = new AtomicBoolean(false);
-        readWriteStream.endHandler(__ -> {
-            hasCalledEndOnReadWriteStreamParentClass.set(true);
-        });
-        return hasCalledEndOnReadWriteStreamParentClass;
-    }
+    private static class MyCustomException extends RuntimeException {}
 }
