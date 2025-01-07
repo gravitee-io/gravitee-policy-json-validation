@@ -1,3 +1,23 @@
+# [2.0.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/1.7.1...2.0.0) (2025-01-07)
+
+
+### chore
+
+* **deps:** bump gravitee-parent to 22 ([3301141](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/33011415b2cf7b2f7430451a853a8a177b45653c))
+
+
+### Features
+
+* **async:** allow use policy in async API ([df608a9](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/df608a9b7eaf323b99b514fff8509bdc0ee48dfb))
+
+
+### BREAKING CHANGES
+
+* **async:** now compatible with APIM 4.6 or greater
+
+APIM-7216
+* **deps:** now use JDK 17 as source and target compilation
+
 ## [1.7.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/1.7.0...1.7.1) (2024-06-17)
 
 
