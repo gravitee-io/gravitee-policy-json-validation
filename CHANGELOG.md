@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.0...2.0.1) (2025-01-17)
+
+
+### Bug Fixes
+
+* change the error code ([44bbf67](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/44bbf67c89584c33f2a9e2a930a0ccf8112eb3a7))
+
 # [2.0.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/1.7.1...2.0.0) (2025-01-07)
 
 
