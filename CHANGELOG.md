@@ -1,3 +1,10 @@
+## [2.0.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.1...2.0.2) (2025-01-17)
+
+
+### Bug Fixes
+
+* naming ([7c390b0](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/7c390b0173d2144dc3bdc108cb520cedae8cd1a2))
+
 ## [2.0.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.0...2.0.1) (2025-01-17)
 
 
