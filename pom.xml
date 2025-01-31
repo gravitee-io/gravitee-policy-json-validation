@@ -34,7 +34,7 @@
     </parent>
 
     <properties>
-        <gravitee-apim.version>4.6.0-alpha.3</gravitee-apim.version>
+        <gravitee-apim.version>4.6.2</gravitee-apim.version>
         <gravitee-reactor-message.version>5.0.0</gravitee-reactor-message.version>
 
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
