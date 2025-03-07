@@ -16,12 +16,12 @@
 package io.gravitee.policy.jsonvalidation;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import io.gravitee.gateway.api.buffer.Buffer;
-import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
-import io.gravitee.gateway.reactive.api.context.http.HttpPlainRequest;
+import io.gravitee.gateway.reactive.api.context.http.*;
+import io.gravitee.gateway.reactive.api.message.DefaultMessage;
+import io.gravitee.gateway.reactive.api.message.Message;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.reactivex.rxjava3.core.Completable;
@@ -31,6 +31,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -108,7 +110,84 @@ class JsonValidationPolicyTest {
     }
 
     @Nested
-    class OnResponseTest {}
+    class OnMessageRequestTest {
+
+        @Mock
+        HttpMessageExecutionContext ctx;
+
+        @Mock
+        HttpMessageRequest request;
+
+        @Captor
+        ArgumentCaptor<java.util.function.Function<Message, Maybe<Message>>> messageCaptor;
+
+        @BeforeEach
+        void setUp() {
+            when(ctx.request()).thenReturn(request);
+            when(request.onMessage(any())).thenReturn(Completable.complete());
+        }
+
+        @Test
+        void testOnMessageRequest_validationSucceeds() throws IOException {
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            DefaultMessage message = DefaultMessage.builder().id("id").content(Buffer.buffer("{\"name\":\"foo\"}")).build();
+            policy.onMessageRequest(ctx).test().assertComplete();
+            verify(request).onMessage(messageCaptor.capture());
+            messageCaptor.getValue().apply(message).test().assertValue(message);
+        }
+
+        @Test
+        void testOnMessageRequest_validationFails() throws IOException {
+            var metrics = Metrics.builder().build();
+            lenient().when(ctx.metrics()).thenReturn(metrics);
+            when(ctx.interruptMessageWith(any())).thenReturn(Maybe.error(new MyCustomException()));
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            DefaultMessage message = DefaultMessage.builder().id("id").content(Buffer.buffer("{\"name2\":\"foo\"}")).build();
+            policy.onMessageRequest(ctx).test().assertComplete();
+            verify(request).onMessage(messageCaptor.capture());
+            messageCaptor.getValue().apply(message).test().assertError(throwable -> throwable instanceof MyCustomException);
+        }
+    }
+
+    @Nested
+    class OnMessageResponseTest {
+
+        @Mock
+        HttpMessageExecutionContext ctx;
+
+        @Mock
+        HttpMessageResponse response;
+
+        @Captor
+        ArgumentCaptor<java.util.function.Function<Message, Maybe<Message>>> messageCaptor;
+
+        @BeforeEach
+        void setUp() {
+            when(ctx.response()).thenReturn(response);
+            lenient().when(response.onMessage(any())).thenReturn(Completable.complete());
+        }
+
+        @Test
+        void testOnMessageReesponse_validationSucceeds() throws IOException {
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            DefaultMessage message = DefaultMessage.builder().id("id").content(Buffer.buffer("{\"name\":\"foo\"}")).build();
+            policy.onMessageResponse(ctx).test().assertComplete();
+            verify(response).onMessage(messageCaptor.capture());
+            messageCaptor.getValue().apply(message).test().assertValue(message);
+        }
+
+        @Test
+        void testOnMessageReesponse_validationFails() throws IOException {
+            var metrics = Metrics.builder().build();
+            lenient().when(ctx.metrics()).thenReturn(metrics);
+            lenient().when(ctx.interruptMessageWith(any())).thenReturn(Maybe.error(new MyCustomException()));
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            DefaultMessage message = DefaultMessage.builder().id("id").content(Buffer.buffer("{\"name2\":\"foo\"}")).build();
+            policy.onMessageResponse(ctx).test().assertComplete();
+            verify(response).onMessage(messageCaptor.capture());
+            messageCaptor.getValue().apply(message).test().assertError(throwable -> throwable instanceof MyCustomException);
+        }
+    }
 
     private static class MyCustomException extends RuntimeException {}
 }

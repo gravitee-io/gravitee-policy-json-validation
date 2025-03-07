@@ -30,9 +30,11 @@ import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.message.Message;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
+import io.gravitee.policy.JsonValidationException;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.v3.jsonvalidation.JsonValidationPolicyV3;
 import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
 import java.util.function.BiFunction;
@@ -85,28 +87,36 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
 
     @Override
     public Completable onMessageRequest(HttpMessageExecutionContext ctx) {
-        return ctx
-            .request()
-            .onMessages(e ->
-                e
-                    .map(Message::content)
-                    .flatMapCompletable(buffer -> validate(ctx, buffer, MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt))
-                    .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt))
-                    .toFlowable()
-            );
+        return Completable.defer(() ->
+            ctx
+                .request()
+                .onMessage(message -> {
+                    try {
+                        return validate(ctx, message.content(), MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt)
+                            .andThen(Maybe.just(message));
+                    } catch (IOException | ProcessingException e) {
+                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                    }
+                })
+                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt))
+        );
     }
 
     @Override
     public Completable onMessageResponse(HttpMessageExecutionContext ctx) {
-        return ctx
-            .response()
-            .onMessages(e ->
-                e
-                    .map(Message::content)
-                    .flatMapCompletable(buffer -> validate(ctx, buffer, MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt))
-                    .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt))
-                    .toFlowable()
-            );
+        return Completable.defer(() ->
+            ctx
+                .response()
+                .onMessage(message -> {
+                    try {
+                        return validate(ctx, message.content(), MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt)
+                            .andThen(Maybe.just(message));
+                    } catch (IOException | ProcessingException e) {
+                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                    }
+                })
+                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt))
+        );
     }
 
     private <T extends HttpBaseExecutionContext> Completable validate(
