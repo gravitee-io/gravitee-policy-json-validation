@@ -1,0 +1,68 @@
+{
+    "id": "a-v4-validation",
+    "name": "a-v4-validation",
+    "apiVersion": "1.0",
+    "definitionVersion": "4.0.0",
+    "type": "message",
+    "analytics": {},
+    "description": "a-v4-api",
+    "listeners": [
+        {
+            "type": "http",
+            "paths": [
+                {
+                    "path": "/a-v4-validation"
+                }
+            ],
+            "entrypoints": [
+                {
+                    "type": "http-post"
+                }
+            ]
+        }
+    ],
+    "endpointGroups": [
+        {
+            "name": "default",
+            "type": "mock",
+            "endpoints": [
+                {
+                    "name": "default-endpoint",
+                    "type": "mock",
+                    "weight": 1,
+                    "inheritConfiguration": false,
+                    "configuration": {}
+                }
+            ]
+        }
+    ],
+    "flows": [
+        {
+            "name": "flow-1",
+            "enabled": true,
+            "selectors": [
+                {
+                    "type": "http",
+                    "path": "/",
+                    "pathOperator": "STARTS_WITH"
+                }
+            ],
+            "request": [],
+            "response": [],
+            "subscribe": [],
+            "publish": [
+                {
+                    "name": "Json validation",
+                    "description": "",
+                    "enabled": true,
+                    "policy": "json-validation",
+                    "configuration": {
+                        "schema": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"title\": \"Message\",\n  \"description\": \"Policy to demonstrate bug\",\n  \"properties\": {\n    \"message\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"message\"\n  ]\n}",
+                        "scope": "REQUEST_CONTENT",
+                        "errorMessage": "{\n    \"message\": \"Invalid format of your message\",\n    \"http_status_code\": 400\n}"
+                    }
+                }
+            ]
+        }
+    ]
+}

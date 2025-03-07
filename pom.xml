@@ -36,7 +36,7 @@
     <properties>
         <gravitee-apim.version>4.6.0-alpha.3</gravitee-apim.version>
         <gravitee-reactor-message.version>5.0.0</gravitee-reactor-message.version>
-
+        <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
 
         <maven-plugin-assembly.version>3.7.1</maven-plugin-assembly.version>
@@ -162,6 +162,12 @@
             <groupId>io.gravitee.apim.plugin.endpoint</groupId>
             <artifactId>gravitee-apim-plugin-endpoint-http-proxy</artifactId>
             <version>${gravitee-apim.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.graviteesource.entrypoint</groupId>
+            <artifactId>gravitee-entrypoint-http-post</artifactId>
+            <version>${gravitee-entrypoint-http-post.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
