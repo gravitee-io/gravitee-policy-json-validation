@@ -1,3 +1,10 @@
+## [2.0.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.2...2.0.3) (2025-03-13)
+
+
+### Bug Fixes
+
+* JSON validation policy message not published ([0a3b3f7](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/0a3b3f7125ce5a9e748217d997a81b84ab1f61d1))
+
 ## [2.0.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.1...2.0.2) (2025-01-17)
 
 
