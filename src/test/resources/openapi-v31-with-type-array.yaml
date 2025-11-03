@@ -1,0 +1,25 @@
+openapi: 3.1.0
+info:
+    title: Pet Store API
+    version: 1.0.0
+paths:
+    /pets:
+        post:
+            summary: Create a new pet
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/PetAge"
+            responses:
+                "200":
+                    description: Success
+components:
+    schemas:
+        PetAge:
+            type:
+                - integer
+                - "null"
+            description: The age of the pet in months. Can be null if the age is unknown.
+            title: PetAge
