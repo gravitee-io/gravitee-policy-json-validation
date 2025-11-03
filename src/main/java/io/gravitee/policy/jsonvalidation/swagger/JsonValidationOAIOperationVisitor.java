@@ -25,6 +25,8 @@ import io.gravitee.policy.api.swagger.Policy;
 import io.gravitee.policy.api.swagger.v3.OAIOperationVisitor;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.swagger.v3.core.util.Json;
+import io.swagger.v3.core.util.Json31;
+import io.swagger.v3.oas.models.SpecVersion;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -55,7 +57,8 @@ public class JsonValidationOAIOperationVisitor implements OAIOperationVisitor {
         final RequestBody requestBody = operation.getRequestBody();
         if (requestBody != null && requestBody.getContent() != null && requestBody.getContent().get("application/json") != null) {
             final var schema = requestBody.getContent().get("application/json").getSchema();
-            jsonSchema = Json.pretty(schema);
+            final var specVersion = schema.getSpecVersion();
+            jsonSchema = specVersion == SpecVersion.V31 ? Json31.pretty(schema) : Json.pretty(schema);
         }
         if (!StringUtils.isEmpty(jsonSchema)) {
             var configuration = new JsonValidationPolicyConfiguration();
