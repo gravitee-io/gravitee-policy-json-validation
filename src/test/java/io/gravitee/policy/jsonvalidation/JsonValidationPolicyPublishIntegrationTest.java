@@ -88,7 +88,7 @@ public class JsonValidationPolicyPublishIntegrationTest
             );
     }
 
-    public void publishPhase(JsonObject body, String requestUri, HttpClient client, boolean expectFail) throws Exception {
+    public void publishPhase(JsonObject body, String requestUri, HttpClient client, boolean expectFail) {
         postMessage(client, requestUri, body, Map.of("X-Test-Header", "header-value")).test().awaitDone(30, TimeUnit.SECONDS);
         if (!expectFail) {
             messageStorage

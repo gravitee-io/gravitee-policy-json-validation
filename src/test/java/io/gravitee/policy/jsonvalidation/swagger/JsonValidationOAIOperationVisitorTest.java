@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.gravitee.policy.api.swagger.Policy;
 import io.swagger.v3.core.util.Json;
@@ -36,7 +37,7 @@ import io.swagger.v3.parser.core.models.ParseOptions;
 import io.swagger.v3.parser.core.models.SwaggerParseResult;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -116,8 +117,8 @@ class JsonValidationOAIOperationVisitorTest {
 
             String configuration = policy.get().getConfiguration();
             assertThat(configuration).isNotNull();
-            var readConfig = new ObjectMapper().readValue(configuration, HashMap.class);
-            assertThat(jsonSchema).isEqualTo(readConfig.get("schema"));
+            Map<String, String> readConfig = new ObjectMapper().readValue(configuration, new TypeReference<>() {});
+            assertThat(readConfig).containsEntry("schema", jsonSchema);
         }
     }
 
@@ -144,8 +145,8 @@ class JsonValidationOAIOperationVisitorTest {
 
             String configuration = policy.get().getConfiguration();
             assertThat(configuration).isNotNull();
-            var readConfig = new ObjectMapper().readValue(configuration, HashMap.class);
-            assertThat(jsonSchema).isEqualTo(readConfig.get("schema"));
+            Map<String, String> readConfig = new ObjectMapper().readValue(configuration, new TypeReference<>() {});
+            assertThat(readConfig).containsEntry("schema", jsonSchema);
         }
     }
 
