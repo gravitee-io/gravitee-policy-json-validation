@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.3...2.1.0) (2025-11-13)
+
+
+### Features
+
+* support JSON Schema v3.1 serialization in JsonValidationOAIOperationVisitor ([1472a48](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/1472a48f67ae27d5a9515742a3286e2600f04b28))
+
 ## [2.0.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.2...2.0.3) (2025-03-13)
 
 
