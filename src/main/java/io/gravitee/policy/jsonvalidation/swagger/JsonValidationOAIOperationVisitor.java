@@ -41,8 +41,7 @@ public class JsonValidationOAIOperationVisitor implements OAIOperationVisitor {
 
     private static final Logger logger = LoggerFactory.getLogger(JsonValidationOAIOperationVisitor.class);
 
-    private final ObjectMapper mapper = JsonMapper
-        .builder()
+    private final ObjectMapper mapper = JsonMapper.builder()
         .configure(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS, true)
         .serializationInclusion(JsonInclude.Include.NON_NULL)
         .enable(SerializationFeature.INDENT_OUTPUT)

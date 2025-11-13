@@ -82,9 +82,8 @@ public class JsonValidationPolicyPublishIntegrationTest
         return apis()
             .flatMap(requestUri -> cases().map(testCase -> testCase.with(requestUri)))
             .map(tuple ->
-                DynamicTest.dynamicTest(
-                    tuple.displayName(),
-                    () -> publishPhase(tuple.body(), tuple.entrypoint(), client, tuple.expectFail())
+                DynamicTest.dynamicTest(tuple.displayName(), () ->
+                    publishPhase(tuple.body(), tuple.entrypoint(), client, tuple.expectFail())
                 )
             );
     }

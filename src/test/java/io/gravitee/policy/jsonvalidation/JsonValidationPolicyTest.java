@@ -39,18 +39,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class JsonValidationPolicyTest {
 
-    private static final String JSON_SCHEMA =
-        """
-                        {
-                            "title": "Person",
-                            "type": "object",
-                            "properties": {
-                                "name": {
-                                    "type": "string"
-                                }
-                            },
-                            "required": ["name"]
-                        }""";
+    private static final String JSON_SCHEMA = """
+        {
+            "title": "Person",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": ["name"]
+        }""";
 
     @Mock
     private JsonValidationPolicyConfiguration configuration;
@@ -85,7 +84,10 @@ class JsonValidationPolicyTest {
             when(request.body()).thenReturn(Maybe.just(Buffer.buffer("qwerty")));
 
             // When
-            policy.onRequest(ctx).test().assertError(throwable -> throwable instanceof MyCustomException);
+            policy
+                .onRequest(ctx)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
         }
 
         @Test
@@ -105,7 +107,10 @@ class JsonValidationPolicyTest {
             when(request.body()).thenReturn(Maybe.just(Buffer.buffer("{\"name2\":\"foo\"}")));
 
             // When
-            policy.onRequest(ctx).test().assertError(throwable -> throwable instanceof MyCustomException);
+            policy
+                .onRequest(ctx)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
         }
     }
 
@@ -145,7 +150,11 @@ class JsonValidationPolicyTest {
             DefaultMessage message = DefaultMessage.builder().id("id").content(Buffer.buffer("{\"name2\":\"foo\"}")).build();
             policy.onMessageRequest(ctx).test().assertComplete();
             verify(request).onMessage(messageCaptor.capture());
-            messageCaptor.getValue().apply(message).test().assertError(throwable -> throwable instanceof MyCustomException);
+            messageCaptor
+                .getValue()
+                .apply(message)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
         }
     }
 
@@ -185,7 +194,11 @@ class JsonValidationPolicyTest {
             DefaultMessage message = DefaultMessage.builder().id("id").content(Buffer.buffer("{\"name2\":\"foo\"}")).build();
             policy.onMessageResponse(ctx).test().assertComplete();
             verify(response).onMessage(messageCaptor.capture());
-            messageCaptor.getValue().apply(message).test().assertError(throwable -> throwable instanceof MyCustomException);
+            messageCaptor
+                .getValue()
+                .apply(message)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
         }
     }
 

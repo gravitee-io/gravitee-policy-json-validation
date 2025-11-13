@@ -188,17 +188,16 @@ class JsonValidationOAIOperationVisitorTest {
 
             // Verify the policy configuration contains the expected schema with type as array
             String configuration = policy.get().getConfiguration();
-            assertThat(configuration)
-                .isEqualTo(
-                    """
-                    {
-                      "scope" : "REQUEST_CONTENT",
-                      "schema" : "{\\n  \\"type\\" : [ \\"integer\\", \\"null\\" ],\\n  \\"description\\" : \\"The age of the pet in months. Can be null if the age is unknown.\\",\\n  \\"title\\" : \\"PetAge\\"\\n}",
-                      "validateUnchecked" : false,
-                      "deepCheck" : false,
-                      "straightRespondMode" : false
-                    }"""
-                );
+            assertThat(configuration).isEqualTo(
+                """
+                {
+                  "scope" : "REQUEST_CONTENT",
+                  "schema" : "{\\n  \\"type\\" : [ \\"integer\\", \\"null\\" ],\\n  \\"description\\" : \\"The age of the pet in months. Can be null if the age is unknown.\\",\\n  \\"title\\" : \\"PetAge\\"\\n}",
+                  "validateUnchecked" : false,
+                  "deepCheck" : false,
+                  "straightRespondMode" : false
+                }"""
+            );
         }
     }
 }

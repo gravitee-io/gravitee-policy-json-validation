@@ -68,9 +68,8 @@ public class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<Json
         return apis()
             .flatMap(requestUri -> cases().map(testCase -> testCase.with(requestUri)))
             .map(tuple ->
-                DynamicTest.dynamicTest(
-                    tuple.displayName(),
-                    () -> requestPhase(tuple.body(), tuple.entrypoint(), client, tuple.expectFail())
+                DynamicTest.dynamicTest(tuple.displayName(), () ->
+                    requestPhase(tuple.body(), tuple.entrypoint(), client, tuple.expectFail())
                 )
             );
     }
@@ -80,9 +79,8 @@ public class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<Json
         return apis()
             .flatMap(requestUri -> cases().map(testCase -> testCase.with(requestUri)))
             .map(tuple ->
-                DynamicTest.dynamicTest(
-                    tuple.displayName(),
-                    () -> responsePhase(tuple.body(), tuple.entrypoint(), client, tuple.expectFail())
+                DynamicTest.dynamicTest(tuple.displayName(), () ->
+                    responsePhase(tuple.body(), tuple.entrypoint(), client, tuple.expectFail())
                 )
             );
     }

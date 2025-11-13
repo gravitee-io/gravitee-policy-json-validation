@@ -92,8 +92,9 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                 .request()
                 .onMessage(message -> {
                     try {
-                        return validate(ctx, message.content(), MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt)
-                            .andThen(Maybe.just(message));
+                        return validate(ctx, message.content(), MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt).andThen(
+                            Maybe.just(message)
+                        );
                     } catch (IOException | ProcessingException e) {
                         throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
                     }
@@ -109,8 +110,9 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                 .response()
                 .onMessage(message -> {
                     try {
-                        return validate(ctx, message.content(), MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt)
-                            .andThen(Maybe.just(message));
+                        return validate(ctx, message.content(), MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt).andThen(
+                            Maybe.just(message)
+                        );
                     } catch (IOException | ProcessingException e) {
                         throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
                     }
@@ -158,10 +160,9 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         ctx.metrics().setErrorMessage(th);
         return straightMode
             ? Completable.complete()
-            : errorMessage(ctx, statusCode)
-                .flatMapCompletable(msg ->
-                    interrupt.apply(ctx, new ExecutionFailure(statusCode).contentType(MediaType.APPLICATION_JSON).key(key).message(msg))
-                );
+            : errorMessage(ctx, statusCode).flatMapCompletable(msg ->
+                interrupt.apply(ctx, new ExecutionFailure(statusCode).contentType(MediaType.APPLICATION_JSON).key(key).message(msg))
+            );
     }
 
     private Maybe<String> errorMessage(HttpBaseExecutionContext executionContext, int httpStatusCode) {

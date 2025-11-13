@@ -63,18 +63,17 @@ public class JsonValidationPolicyV3Test {
 
     private BufferFactory factory;
 
-    private static final String JSON_SCHEMA =
-        """
-                    {
-                        "title": "Person",
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string"
-                            }
-                        },
-                        "required": ["name"]
-                    }""";
+    private static final String JSON_SCHEMA = """
+        {
+            "title": "Person",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            },
+            "required": ["name"]
+        }""";
 
     private Metrics metrics;
 
