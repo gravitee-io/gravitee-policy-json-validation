@@ -15,36 +15,48 @@
  */
 package io.gravitee.policy.jsonvalidation;
 
-import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.Source.MESSAGE_REQUEST;
-import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.Source.MESSAGE_RESPONSE;
+import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.HttpSource.MESSAGE_REQUEST;
+import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.HttpSource.MESSAGE_RESPONSE;
+import static io.gravitee.policy.jsonvalidation.handler.kafka.KafkaValidationResultHandlerFactory.createValidationResultHandler;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.github.fge.jackson.JsonLoader;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import com.github.fge.jsonschema.core.report.ProcessingReport;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
 import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
+import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
+import io.gravitee.gateway.reactive.api.policy.kafka.KafkaPolicy;
 import io.gravitee.policy.JsonValidationException;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
+import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeErrorHandling;
+import io.gravitee.policy.jsonvalidation.handler.ValidationResultHandler;
+import io.gravitee.policy.jsonvalidation.handler.kafka.KafkaValidationResultHandler;
+import io.gravitee.policy.jsonvalidation.schema.SchemaResolver;
+import io.gravitee.policy.jsonvalidation.schema.SchemaResolverFactory;
 import io.gravitee.policy.v3.jsonvalidation.JsonValidationPolicyV3;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.BiFunction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-public class JsonValidationPolicy extends JsonValidationPolicyV3 implements HttpPolicy {
+/**
+ * @author GraviteeSource Team
+ */
+@Slf4j
+public class JsonValidationPolicy extends JsonValidationPolicyV3 implements HttpPolicy, KafkaPolicy {
 
-    private static final Logger log = LoggerFactory.getLogger(JsonValidationPolicy.class);
     public static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
-    private final JsonNode schema;
+    private final SchemaResolver schemaResolver;
     private final boolean straightRespond;
 
     /**
@@ -54,7 +66,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
      */
     public JsonValidationPolicy(JsonValidationPolicyConfiguration configuration) throws IOException {
         super(configuration);
-        schema = JsonLoader.fromString(configuration.getSchema());
+        schemaResolver = SchemaResolverFactory.createSchemaResolver(configuration);
         straightRespond = configuration.isStraightRespondMode();
     }
 
@@ -68,8 +80,8 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return ctx
             .request()
             .body()
-            .flatMapCompletable(buffer -> validate(ctx, buffer, Source.REQUEST, false, JsonValidationPolicy::interrupt))
-            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), Source.REQUEST, JsonValidationPolicy::interrupt));
+            .flatMapCompletable(buffer -> validate(ctx, buffer, HttpSource.REQUEST, false, JsonValidationPolicy::interrupt))
+            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), HttpSource.REQUEST, JsonValidationPolicy::interrupt));
     }
 
     @Override
@@ -78,9 +90,9 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             .response()
             .body()
             .flatMapCompletable(buffer ->
-                validate(ctx, buffer, Source.RESPONSE, configuration.isStraightRespondMode(), JsonValidationPolicy::interrupt)
+                validate(ctx, buffer, HttpSource.RESPONSE, configuration.isStraightRespondMode(), JsonValidationPolicy::interrupt)
             )
-            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), Source.RESPONSE, JsonValidationPolicy::interrupt));
+            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), HttpSource.RESPONSE, JsonValidationPolicy::interrupt));
     }
 
     @Override
@@ -119,17 +131,43 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         );
     }
 
+    @Override
+    public Completable onMessageRequest(KafkaMessageExecutionContext ctx) {
+        return Completable.defer(() -> {
+            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::getOnPublish).isEmpty()) {
+                return Completable.error(
+                    new IllegalArgumentException("JSON-validation policy for Kafka is not configured for onPublish phase.")
+                );
+            }
+
+            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().getOnPublish());
+            return ctx.request().onMessage(message -> validate(ctx, message, handler).andThen(Maybe.just(message)));
+        });
+    }
+
+    @Override
+    public Completable onMessageResponse(KafkaMessageExecutionContext ctx) {
+        return Completable.defer(() -> {
+            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::getOnSubscribe).isEmpty()) {
+                return Completable.error(
+                    new IllegalArgumentException("JSON-validation policy for Kafka is not configured for onSubscribe phase.")
+                );
+            }
+
+            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().getOnSubscribe());
+            return ctx.response().onMessage(message -> validate(ctx, message, handler).andThen(Maybe.just(message)));
+        });
+    }
+
     private <T extends HttpBaseExecutionContext> Completable validate(
         T ctx,
         Buffer buffer,
-        Source source,
+        HttpSource source,
         boolean straightMode,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) throws IOException, ProcessingException {
-        JsonNode jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
-        var report = configuration.isValidateUnchecked()
-            ? validator.validateUnchecked(schema, jsonNode)
-            : validator.validate(schema, jsonNode);
+        var schema = schemaResolver.resolveSchema(ctx);
+        var report = validatePayload(buffer, schema);
         if (!report.isSuccess()) {
             log.debug("Invalid body '{}'", report);
         }
@@ -138,10 +176,33 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             : errorHandling(ctx, report.toString(), source.status, source.getPayloadKey(), straightMode, interrupt);
     }
 
+    private <T extends KafkaMessageExecutionContext> Completable validate(
+        T ctx,
+        KafkaMessage message,
+        ValidationResultHandler<T, KafkaMessage> handler
+    ) {
+        try {
+            var schema = schemaResolver.resolveSchema(ctx);
+            var report = validatePayload(message.content(), schema);
+            if (!report.isSuccess()) {
+                log.debug("Invalid message body '{}'", report);
+            }
+            return report.isSuccess() ? handler.onSuccess(ctx, message) : errorHandling(ctx, message, report.toString(), handler);
+        } catch (IOException | ProcessingException e) {
+            log.error("Error occurred during message validation: {}", e.getMessage(), e);
+            return errorHandling(ctx, message, e.toString(), handler);
+        }
+    }
+
+    private ProcessingReport validatePayload(Buffer buffer, JsonNode schema) throws IOException, ProcessingException {
+        JsonNode jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
+        return configuration.isValidateUnchecked() ? validator.validateUnchecked(schema, jsonNode) : validator.validate(schema, jsonNode);
+    }
+
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
         T ctx,
         String th,
-        Source source,
+        HttpSource source,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) {
         return errorHandling(ctx, th, source.status, source.getFormatKey(), false, interrupt);
@@ -163,6 +224,16 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             );
     }
 
+    private <T extends KafkaMessageExecutionContext> Completable errorHandling(
+        T ctx,
+        KafkaMessage kafkaMessage,
+        String throwableMessage,
+        ValidationResultHandler<T, KafkaMessage> handler
+    ) {
+        ctx.metrics().setErrorMessage(throwableMessage);
+        return handler.onError(ctx, kafkaMessage, throwableMessage);
+    }
+
     private Maybe<String> errorMessage(HttpBaseExecutionContext executionContext, int httpStatusCode) {
         String defaultMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
         return configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()
@@ -178,7 +249,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return ctx.interruptMessageWith(executionFailure).ignoreElement();
     }
 
-    enum Source {
+    enum HttpSource {
         REQUEST("JSON_INVALID_PAYLOAD", "JSON_INVALID_FORMAT", 400),
         RESPONSE("JSON_INVALID_RESPONSE_FORMAT", "JSON_INVALID_RESPONSE_PAYLOAD", 500),
         MESSAGE_REQUEST("JSON_INVALID_MESSAGE_REQUEST_PAYLOAD", "JSON_INVALID_MESSAGE_REQUEST_FORMAT", 400),
@@ -188,7 +259,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         private final String invalidFormatKey;
         private final int status;
 
-        Source(String invalidPayloadKey, String invalidFormatKey, int status) {
+        HttpSource(String invalidPayloadKey, String invalidFormatKey, int status) {
             this.invalidPayloadKey = invalidPayloadKey;
             this.invalidFormatKey = invalidFormatKey;
             this.status = status;

@@ -16,8 +16,15 @@
 package io.gravitee.policy.jsonvalidation.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
+import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeErrorHandling;
+import lombok.Getter;
+import lombok.Setter;
 
-@SuppressWarnings("unused")
+/**
+ * @author GraviteeSource Team
+ */
+@Getter
+@Setter
 public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     private PolicyScope scope = PolicyScope.REQUEST_CONTENT;
@@ -32,51 +39,5 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     private boolean straightRespondMode;
 
-    public PolicyScope getScope() {
-        return scope;
-    }
-
-    public void setScope(PolicyScope scope) {
-        this.scope = scope;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public String getSchema() {
-        return schema;
-    }
-
-    public void setSchema(String schema) {
-        this.schema = schema;
-    }
-
-    public boolean isValidateUnchecked() {
-        return validateUnchecked;
-    }
-
-    public void setValidateUnchecked(boolean validateUnchecked) {
-        this.validateUnchecked = validateUnchecked;
-    }
-
-    public boolean isDeepCheck() {
-        return deepCheck;
-    }
-
-    public void setDeepCheck(boolean deepCheck) {
-        this.deepCheck = deepCheck;
-    }
-
-    public boolean isStraightRespondMode() {
-        return straightRespondMode;
-    }
-
-    public void setStraightRespondMode(boolean straightRespondMode) {
-        this.straightRespondMode = straightRespondMode;
-    }
+    private NativeErrorHandling nativeErrorHandling;
 }

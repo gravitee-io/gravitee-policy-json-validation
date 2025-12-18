@@ -13,12 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration;
+package io.gravitee.policy.jsonvalidation.schema;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import io.gravitee.gateway.api.ExecutionContext;
+import io.gravitee.gateway.api.Request;
+import io.gravitee.gateway.api.Response;
+import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 
 /**
  * @author GraviteeSource Team
  */
-public enum PolicyScope {
-    REQUEST_CONTENT,
-    RESPONSE_CONTENT,
+public interface SchemaResolver {
+    JsonNode resolveSchema(BaseExecutionContext ctx);
+    JsonNode resolveSchema(ExecutionContext ctx, Request request, Response response);
 }

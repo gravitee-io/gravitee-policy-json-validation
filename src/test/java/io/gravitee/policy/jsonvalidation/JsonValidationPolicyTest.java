@@ -15,18 +15,32 @@
  */
 package io.gravitee.policy.jsonvalidation;
 
+import static io.gravitee.policy.jsonvalidation.configuration.errorhandling.PublishValidationErrorStrategy.FAIL_WITH_INVALID_RECORD;
+import static io.gravitee.policy.jsonvalidation.configuration.errorhandling.SubscribeErrorHandlingStrategy.ADD_RECORD_HEADER;
+import static io.gravitee.policy.jsonvalidation.configuration.errorhandling.SubscribeErrorHandlingStrategy.INVALIDATE_PARTITION;
+import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessageFactory.createFailedProduceResponseWithTwoPartitions;
+import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessageFactory.createFetchResponseWithTwoPartitions;
+import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.TEST_HEADER_NAME;
+import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.createNativeErrorHandling;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.context.http.*;
+import io.gravitee.gateway.reactive.api.context.kafka.*;
 import io.gravitee.gateway.reactive.api.message.DefaultMessage;
 import io.gravitee.gateway.reactive.api.message.Message;
+import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
+import io.gravitee.policy.jsonvalidation.kafka.stub.KafkaMessageStub;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
+import org.apache.kafka.common.InvalidRecordException;
+import org.apache.kafka.common.protocol.Errors;
+import org.apache.kafka.common.requests.AbstractResponse;
+import org.apache.kafka.common.requests.ProduceRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,6 +50,9 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+/**
+ * @author GraviteeSource Team
+ */
 @ExtendWith(MockitoExtension.class)
 class JsonValidationPolicyTest {
 
@@ -177,7 +194,7 @@ class JsonValidationPolicyTest {
         }
 
         @Test
-        void testOnMessageReesponse_validationSucceeds() throws IOException {
+        void testOnMessageResponse_validationSucceeds() throws IOException {
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             DefaultMessage message = DefaultMessage.builder().id("id").content(Buffer.buffer("{\"name\":\"foo\"}")).build();
             policy.onMessageResponse(ctx).test().assertComplete();
@@ -186,7 +203,7 @@ class JsonValidationPolicyTest {
         }
 
         @Test
-        void testOnMessageReesponse_validationFails() throws IOException {
+        void testOnMessageResponse_validationFails() throws IOException {
             var metrics = Metrics.builder().build();
             lenient().when(ctx.metrics()).thenReturn(metrics);
             lenient().when(ctx.interruptMessageWith(any())).thenReturn(Maybe.error(new MyCustomException()));
@@ -199,6 +216,157 @@ class JsonValidationPolicyTest {
                 .apply(message)
                 .test()
                 .assertError(throwable -> throwable instanceof MyCustomException);
+        }
+    }
+
+    @Nested
+    class OnKafkaMessageRequestTest {
+
+        @Mock
+        KafkaMessageExecutionContext msgCtx;
+
+        @Mock
+        KafkaExecutionContext ctx;
+
+        @Mock
+        KafkaMessageRequest messageRequest;
+
+        @Mock
+        KafkaRequest request;
+
+        @Mock
+        ProduceRequest produceRequest;
+
+        @Captor
+        ArgumentCaptor<java.util.function.Function<KafkaMessage, Maybe<KafkaMessage>>> messageCaptor;
+
+        @BeforeEach
+        void setUp() {
+            lenient().when(msgCtx.executionContext()).thenReturn(ctx);
+
+            when(msgCtx.request()).thenReturn(messageRequest);
+            when(messageRequest.onMessage(any())).thenReturn(Completable.complete());
+            when(configuration.getNativeErrorHandling()).thenReturn(createNativeErrorHandling(FAIL_WITH_INVALID_RECORD));
+
+            lenient().when(ctx.request()).thenReturn(request);
+            lenient().when(request.delegate()).thenReturn(produceRequest);
+        }
+
+        @Test
+        void testOnMessageRequest_validationSucceeds() throws IOException {
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            KafkaMessageStub message = new KafkaMessageStub("{\"name\":\"foo\"}");
+
+            policy.onMessageRequest(msgCtx).test().assertComplete();
+
+            verify(messageRequest).onMessage(messageCaptor.capture());
+            messageCaptor.getValue().apply(message).test().assertValue(message);
+        }
+
+        @Test
+        void testOnMessageRequest_validationFailsWithInvalidRecord() throws IOException {
+            var metrics = Metrics.builder().build();
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            KafkaMessageStub message = new KafkaMessageStub("{\"name2\":\"foo\"}");
+
+            when(msgCtx.metrics()).thenReturn(metrics);
+            when(produceRequest.getErrorResponse(anyInt(), any(InvalidRecordException.class))).thenReturn(
+                createFailedProduceResponseWithTwoPartitions(Errors.INVALID_RECORD)
+            );
+            when(ctx.interruptWith(any(AbstractResponse.class))).thenReturn(Completable.error(new MyCustomException()));
+
+            policy.onMessageRequest(msgCtx).test().assertComplete();
+
+            verify(messageRequest).onMessage(messageCaptor.capture());
+            messageCaptor
+                .getValue()
+                .apply(message)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
+        }
+    }
+
+    @Nested
+    class OnKafkaMessageResponseTest {
+
+        @Mock
+        KafkaMessageExecutionContext msgCtx;
+
+        @Mock
+        KafkaExecutionContext ctx;
+
+        @Mock
+        KafkaMessageResponse messageResponse;
+
+        @Mock
+        KafkaResponse response;
+
+        @Captor
+        ArgumentCaptor<java.util.function.Function<KafkaMessage, Maybe<KafkaMessage>>> messageCaptor;
+
+        @BeforeEach
+        void setUp() {
+            lenient().when(msgCtx.executionContext()).thenReturn(ctx);
+
+            when(msgCtx.response()).thenReturn(messageResponse);
+            when(messageResponse.onMessage(any())).thenReturn(Completable.complete());
+
+            lenient().when(ctx.response()).thenReturn(response);
+            lenient().when(response.delegate()).thenReturn(createFetchResponseWithTwoPartitions());
+        }
+
+        @Test
+        void testOnMessageResponse_validationSucceeds() throws IOException {
+            when(configuration.getNativeErrorHandling()).thenReturn(createNativeErrorHandling(INVALIDATE_PARTITION));
+
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            KafkaMessageStub message = new KafkaMessageStub("{\"name\":\"foo\"}");
+
+            policy.onMessageResponse(msgCtx).test().assertComplete();
+
+            verify(messageResponse).onMessage(messageCaptor.capture());
+            messageCaptor.getValue().apply(message).test().assertValue(message);
+        }
+
+        @Test
+        void testOnMessageResponse_validationFailsWithInvalidatePartition() throws IOException {
+            when(configuration.getNativeErrorHandling()).thenReturn(createNativeErrorHandling(INVALIDATE_PARTITION));
+
+            var metrics = Metrics.builder().build();
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            KafkaMessageStub message = new KafkaMessageStub("{\"name2\":\"foo\"}");
+
+            when(msgCtx.metrics()).thenReturn(metrics);
+            when(ctx.interruptWith(any(AbstractResponse.class))).thenReturn(Completable.error(new MyCustomException()));
+
+            policy.onMessageResponse(msgCtx).test().assertComplete();
+
+            verify(messageResponse).onMessage(messageCaptor.capture());
+            messageCaptor
+                .getValue()
+                .apply(message)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
+        }
+
+        @Test
+        void testOnMessageResponse_validationFailsWithAddRecordHeader() throws IOException {
+            when(configuration.getNativeErrorHandling()).thenReturn(createNativeErrorHandling(ADD_RECORD_HEADER));
+
+            var metrics = Metrics.builder().build();
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            KafkaMessageStub originalMessage = new KafkaMessageStub("{\"name2\":\"foo\"}");
+
+            when(msgCtx.metrics()).thenReturn(metrics);
+
+            policy.onMessageResponse(msgCtx).test().assertComplete();
+
+            verify(messageResponse).onMessage(messageCaptor.capture());
+            messageCaptor
+                .getValue()
+                .apply(originalMessage)
+                .test()
+                .assertValue(actualMessage -> actualMessage.recordHeaders().containsKey(TEST_HEADER_NAME));
         }
     }
 

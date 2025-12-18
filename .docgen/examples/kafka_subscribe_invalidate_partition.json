@@ -1,0 +1,8 @@
+{
+    "schema": "{\"title\": \"Person\", \"type\": \"object\", \"properties\": {\"name\": {\"type\": \"string\"}}, \"required\": [\"name\"]}",
+    "nativeErrorHandling": {
+        "onSubscribe": {
+            "strategy": "INVALIDATE_PARTITION"
+        }
+    }
+}

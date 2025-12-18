@@ -13,12 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration;
+package io.gravitee.policy.jsonvalidation.handler;
+
+import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
+import io.gravitee.gateway.reactive.api.message.Message;
+import io.reactivex.rxjava3.core.Completable;
 
 /**
  * @author GraviteeSource Team
  */
-public enum PolicyScope {
-    REQUEST_CONTENT,
-    RESPONSE_CONTENT,
+public interface ValidationResultHandler<T extends BaseExecutionContext, M extends Message> {
+    default Completable onSuccess(T ctx, M message) {
+        return Completable.complete();
+    }
+
+    Completable onError(T ctx, M message, String errorMessage);
 }
