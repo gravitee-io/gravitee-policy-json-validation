@@ -15,6 +15,8 @@
  */
 package io.gravitee.policy.v3.jsonvalidation;
 
+import static io.gravitee.policy.jsonvalidation.schema.SchemaResolverFactory.createSchemaResolver;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
@@ -117,7 +119,7 @@ public class JsonValidationPolicyV3 {
     ) {
         return new PassThroughBuffer((buffer, writeBufferAndEnd) -> {
             try {
-                JsonNode schema = JsonLoader.fromString(configuration.getSchema());
+                JsonNode schema = createSchemaResolver(configuration).resolveSchema(executionContext, request, response);
                 JsonNode content = JsonLoader.fromString(buffer.toString());
 
                 ProcessingReport report = getReport(schema, content);
