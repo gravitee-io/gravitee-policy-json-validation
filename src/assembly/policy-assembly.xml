@@ -41,16 +41,16 @@
         <fileSet>
             <directory>${basedir}</directory>
             <includes>
-                <include>README.adoc</include>
+                <include>${icon}</include>
             </includes>
-            <outputDirectory>docs</outputDirectory>
         </fileSet>
 
         <fileSet>
             <directory>${basedir}</directory>
             <includes>
-                <include>${icon}</include>
+                <include>docs/</include>
             </includes>
+            <outputDirectory>./</outputDirectory>
         </fileSet>
 
         <!-- Create the empty lib directory in case of no libraries is required -->

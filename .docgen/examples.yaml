@@ -1,0 +1,45 @@
+genExamples: []
+
+rawExamples:
+    - title: Proxy API on Request phase
+      templateRef: v4-api-proxy
+      language: json
+      properties:
+          phase: request
+      file: .docgen/examples/proxy_request.json
+    - title: Proxy API on Response phase
+      templateRef: v4-api-proxy
+      language: json
+      properties:
+          phase: response
+      file: .docgen/examples/proxy_response.json
+    - title: Message API on Request phase
+      templateRef: v4-api-crd-message
+      language: json
+      properties:
+          phase: message_request
+      file: .docgen/examples/message_request.json
+    - title: Message API on Response phase
+      templateRef: v4-api-crd-message
+      language: json
+      properties:
+          phase: message_response
+      file: .docgen/examples/message_response.json
+    - title: Kafka subscribe with INVALIDATE_PARTITION strategy
+      templateRef: v4-api-crd-kafka-native
+      language: json
+      properties:
+          phase: subscribe
+      file: .docgen/examples/kafka_subscribe_invalidate_partition.json
+    - title: Kafka subscribe with ADD_RECORD_HEADER strategy
+      templateRef: v4-api-crd-kafka-native
+      language: json
+      properties:
+          phase: subscribe
+      file: .docgen/examples/kafka_subscribe_add_record_header.json
+    - title: Kafka publish with FAIL_WITH_INVALID_RECORD strategy
+      templateRef: v4-api-crd-kafka-native
+      language: json
+      properties:
+          phase: publish
+      file: .docgen/examples/kafka_publish_fail_with_invalid_record.json

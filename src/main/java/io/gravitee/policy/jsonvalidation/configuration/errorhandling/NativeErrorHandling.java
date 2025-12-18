@@ -13,12 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration;
+package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
+
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * @author GraviteeSource Team
  */
-public enum PolicyScope {
-    REQUEST_CONTENT,
-    RESPONSE_CONTENT,
+@Getter
+@Setter
+public class NativeErrorHandling {
+
+    private SubscribeErrorHandling onSubscribe;
+    private PublishErrorHandling onPublish;
 }

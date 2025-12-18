@@ -2,6 +2,87 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "additionalProperties": false,
+    "definitions": {
+        "nativeErrorHandling": {
+            "type": "object",
+            "title": "Error handling strategy",
+            "properties": {
+                "onSubscribe": {
+                    "$ref": "#/definitions/subscribeErrorHandling"
+                },
+                "onPublish": {
+                    "$ref": "#/definitions/publishErrorHandling"
+                }
+            },
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.apiType": ["NATIVE"]
+                    }
+                }
+            }
+        },
+        "subscribeErrorHandling": {
+            "type": "object",
+            "title": "SubscribeErrorHandling",
+            "description": "Error handling for subscribe phase",
+            "oneOf": [
+                {
+                    "title": "Invalidate partition",
+                    "properties": {
+                        "strategy": {
+                            "const": "INVALIDATE_PARTITION"
+                        }
+                    },
+                    "required": ["strategy"]
+                },
+                {
+                    "title": "Add record header",
+                    "properties": {
+                        "strategy": {
+                            "const": "ADD_RECORD_HEADER"
+                        },
+                        "headerName": {
+                            "title": "Record header name",
+                            "description": "Record header name to append validation error",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["strategy", "headerName"]
+                }
+            ],
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.flowPhase": ["SUBSCRIBE"]
+                    }
+                }
+            }
+        },
+        "publishErrorHandling": {
+            "title": "PublishErrorHandling",
+            "type": "object",
+            "description": "Error handling for publish phase",
+            "oneOf": [
+                {
+                    "title": "Fail with invalid record",
+                    "properties": {
+                        "strategy": {
+                            "const": "FAIL_WITH_INVALID_RECORD"
+                        }
+                    },
+                    "required": ["strategy"]
+                }
+            ],
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.flowPhase": ["PUBLISH"]
+                    }
+                }
+            }
+        }
+    },
     "properties": {
         "scope": {
             "title": "Scope",
@@ -9,7 +90,7 @@
             "type": "string",
             "default": "REQUEST_CONTENT",
             "enum": ["REQUEST_CONTENT", "RESPONSE_CONTENT"],
-            "deprecated": "true"
+            "deprecated": true
         },
         "errorMessage": {
             "title": "Http error message",
@@ -19,6 +100,11 @@
             "gioConfig": {
                 "monacoEditorConfig": {
                     "language": "json"
+                },
+                "displayIf": {
+                    "$eq": {
+                        "context.apiType": ["MESSAGE", "PROXY"]
+                    }
                 }
             },
             "x-schema-form": {
@@ -56,6 +142,9 @@
                     "language": "json"
                 }
             }
+        },
+        "nativeErrorHandling": {
+            "$ref": "#/definitions/nativeErrorHandling"
         },
         "validateUnchecked": {
             "title": "Validate unchecked",
