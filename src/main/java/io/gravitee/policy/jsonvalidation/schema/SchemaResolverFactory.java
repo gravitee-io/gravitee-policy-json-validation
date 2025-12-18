@@ -13,12 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration;
+package io.gravitee.policy.jsonvalidation.schema;
+
+import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
+import java.io.IOException;
 
 /**
  * @author GraviteeSource Team
  */
-public enum PolicyScope {
-    REQUEST_CONTENT,
-    RESPONSE_CONTENT,
+public class SchemaResolverFactory {
+
+    public static SchemaResolver createSchemaResolver(JsonValidationPolicyConfiguration configuration) throws IOException {
+        return new InlineSchemaResolver(configuration.getSchema());
+    }
 }

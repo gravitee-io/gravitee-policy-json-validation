@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration;
+package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
 
 /**
  * @author GraviteeSource Team
  */
-public enum PolicyScope {
-    REQUEST_CONTENT,
-    RESPONSE_CONTENT,
+public enum PublishValidationErrorStrategy {
+    FAIL_WITH_INVALID_RECORD,
 }
