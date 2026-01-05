@@ -72,7 +72,7 @@ public class KafkaValidationResultHandlerTest {
         ProduceRequest produceRequest;
 
         NativeErrorHandling errorHandling = createNativeErrorHandling(FAIL_WITH_INVALID_RECORD);
-        KafkaValidationResultHandler handler = createValidationResultHandler(errorHandling.getOnPublish());
+        KafkaValidationResultHandler handler = createValidationResultHandler(errorHandling.onPublish());
 
         KafkaMessageStub message = new KafkaMessageStub("{\"name\":\"foo\"}");
 
@@ -122,7 +122,7 @@ public class KafkaValidationResultHandlerTest {
         KafkaResponse response;
 
         NativeErrorHandling errorHandling = createNativeErrorHandling(INVALIDATE_PARTITION);
-        KafkaValidationResultHandler handler = createValidationResultHandler(errorHandling.getOnSubscribe());
+        KafkaValidationResultHandler handler = createValidationResultHandler(errorHandling.onSubscribe());
 
         KafkaMessageStub message = new KafkaMessageStub("{\"name\":\"foo\"}");
 
@@ -195,7 +195,7 @@ public class KafkaValidationResultHandlerTest {
         KafkaResponse response;
 
         NativeErrorHandling errorHandling = createNativeErrorHandling(ADD_RECORD_HEADER);
-        KafkaValidationResultHandler handler = createValidationResultHandler(errorHandling.getOnSubscribe());
+        KafkaValidationResultHandler handler = createValidationResultHandler(errorHandling.onSubscribe());
 
         KafkaMessageStub message = new KafkaMessageStub("{\"name\":\"foo\"}");
 

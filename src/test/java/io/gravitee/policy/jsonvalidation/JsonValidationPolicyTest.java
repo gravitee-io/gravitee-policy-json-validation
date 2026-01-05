@@ -32,6 +32,8 @@ import io.gravitee.gateway.reactive.api.message.DefaultMessage;
 import io.gravitee.gateway.reactive.api.message.Message;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSource;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSourceType;
 import io.gravitee.policy.jsonvalidation.kafka.stub.KafkaMessageStub;
 import io.gravitee.reporter.api.v4.metric.Metrics;
 import io.reactivex.rxjava3.core.Completable;
@@ -73,7 +75,9 @@ class JsonValidationPolicyTest {
 
     @BeforeEach
     void setUp() {
-        when(configuration.getSchema()).thenReturn(JSON_SCHEMA);
+        SchemaSource schemaSource = SchemaSource.builder().sourceType(SchemaSourceType.STATIC_SCHEMA).staticSchema(JSON_SCHEMA).build();
+
+        when(configuration.getSchemaSource()).thenReturn(schemaSource);
     }
 
     @ExtendWith(MockitoExtension.class)
@@ -265,11 +269,9 @@ class JsonValidationPolicyTest {
 
         @Test
         void testOnMessageRequest_validationFailsWithInvalidRecord() throws IOException {
-            var metrics = Metrics.builder().build();
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             KafkaMessageStub message = new KafkaMessageStub("{\"name2\":\"foo\"}");
 
-            when(msgCtx.metrics()).thenReturn(metrics);
             when(produceRequest.getErrorResponse(anyInt(), any(InvalidRecordException.class))).thenReturn(
                 createFailedProduceResponseWithTwoPartitions(Errors.INVALID_RECORD)
             );
@@ -332,11 +334,9 @@ class JsonValidationPolicyTest {
         void testOnMessageResponse_validationFailsWithInvalidatePartition() throws IOException {
             when(configuration.getNativeErrorHandling()).thenReturn(createNativeErrorHandling(INVALIDATE_PARTITION));
 
-            var metrics = Metrics.builder().build();
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             KafkaMessageStub message = new KafkaMessageStub("{\"name2\":\"foo\"}");
 
-            when(msgCtx.metrics()).thenReturn(metrics);
             when(ctx.interruptWith(any(AbstractResponse.class))).thenReturn(Completable.error(new MyCustomException()));
 
             policy.onMessageResponse(msgCtx).test().assertComplete();
@@ -353,11 +353,8 @@ class JsonValidationPolicyTest {
         void testOnMessageResponse_validationFailsWithAddRecordHeader() throws IOException {
             when(configuration.getNativeErrorHandling()).thenReturn(createNativeErrorHandling(ADD_RECORD_HEADER));
 
-            var metrics = Metrics.builder().build();
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             KafkaMessageStub originalMessage = new KafkaMessageStub("{\"name2\":\"foo\"}");
-
-            when(msgCtx.metrics()).thenReturn(metrics);
 
             policy.onMessageResponse(msgCtx).test().assertComplete();
 

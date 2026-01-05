@@ -13,9 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
+package io.gravitee.policy.jsonvalidation.configuration.schema;
+
+import lombok.*;
 
 /**
  * @author GraviteeSource Team
  */
-public record PublishErrorHandling(PublishValidationErrorStrategy strategy) {}
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class SchemaSource {
+
+    private SchemaSourceType sourceType;
+
+    private String staticSchema;
+
+    private String resourceName;
+
+    private String schemaMapping;
+}

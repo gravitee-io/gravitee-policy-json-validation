@@ -17,6 +17,7 @@ package io.gravitee.policy.jsonvalidation.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeErrorHandling;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSource;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,7 +32,10 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     private String errorMessage;
 
+    @Deprecated
     private String schema;
+
+    private SchemaSource schemaSource;
 
     private boolean validateUnchecked;
 

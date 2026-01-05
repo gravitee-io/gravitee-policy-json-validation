@@ -81,6 +81,52 @@
                     }
                 }
             }
+        },
+        "schemaSource": {
+            "title": "SchemaSource",
+            "type": "object",
+            "description": "Schema source",
+            "oneOf": [
+                {
+                    "title": "Static schema",
+                    "properties": {
+                        "sourceType": {
+                            "const": "STATIC_SCHEMA"
+                        },
+                        "staticSchema": {
+                            "title": "JSON Schema",
+                            "description": "JSON Schema used for request payload validation",
+                            "type": "string",
+                            "format": "gio-code-editor",
+                            "gioConfig": {
+                                "monacoEditorConfig": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "required": ["sourceType", "staticSchema"]
+                },
+                {
+                    "title": "Schema registry",
+                    "properties": {
+                        "sourceType": {
+                            "const": "SCHEMA_REGISTRY_RESOURCE"
+                        },
+                        "resourceName": {
+                            "title": "Resource name",
+                            "description": "Name of the schema registry resource",
+                            "type": "string"
+                        },
+                        "schemaMapping": {
+                            "title": "Schema mapping",
+                            "description": "EL that evaluates to schema subject",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["sourceType", "resourceName", "schemaMapping"]
+                }
+            ]
         }
     },
     "properties": {
@@ -125,6 +171,7 @@
             "title": "JSON Schema",
             "description": "JSON Schema used for request payload validation",
             "type": "string",
+            "deprecated": true,
             "x-schema-form": {
                 "type": "codemirror",
                 "codemirrorOptions": {
@@ -143,8 +190,17 @@
                 }
             }
         },
+        "schemaSource": {
+            "$ref": "#/definitions/schemaSource",
+            "x-schema-form": {
+                "hidden": true
+            }
+        },
         "nativeErrorHandling": {
-            "$ref": "#/definitions/nativeErrorHandling"
+            "$ref": "#/definitions/nativeErrorHandling",
+            "x-schema-form": {
+                "hidden": true
+            }
         },
         "validateUnchecked": {
             "title": "Validate unchecked",
@@ -161,6 +217,5 @@
             "description": "Only for RESPONSE scope. Straight respond mode means that responses failed to validate still will be sent to user without replacement. Validation failures messages are still being written to the metrics for further inspection.",
             "type": "boolean"
         }
-    },
-    "required": ["schema"]
+    }
 }

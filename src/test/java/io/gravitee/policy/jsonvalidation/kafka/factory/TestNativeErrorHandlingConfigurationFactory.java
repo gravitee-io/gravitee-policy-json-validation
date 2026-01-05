@@ -25,19 +25,10 @@ public class TestNativeErrorHandlingConfigurationFactory {
     public static String TEST_HEADER_NAME = "Test-Validation-Error-Header";
 
     public static NativeErrorHandling createNativeErrorHandling(PublishValidationErrorStrategy strategy) {
-        NativeErrorHandling nativeErrorHandling = new NativeErrorHandling();
-        PublishErrorHandling publishErrorHandlingConfiguration = new PublishErrorHandling();
-        publishErrorHandlingConfiguration.setStrategy(strategy);
-        nativeErrorHandling.setOnPublish(publishErrorHandlingConfiguration);
-        return nativeErrorHandling;
+        return new NativeErrorHandling(null, new PublishErrorHandling(strategy));
     }
 
     public static NativeErrorHandling createNativeErrorHandling(SubscribeErrorHandlingStrategy strategy) {
-        NativeErrorHandling nativeErrorHandling = new NativeErrorHandling();
-        SubscribeErrorHandling subscribeErrorHandling = new SubscribeErrorHandling();
-        subscribeErrorHandling.setStrategy(strategy);
-        subscribeErrorHandling.setHeaderName(TEST_HEADER_NAME);
-        nativeErrorHandling.setOnSubscribe(subscribeErrorHandling);
-        return nativeErrorHandling;
+        return new NativeErrorHandling(new SubscribeErrorHandling(strategy, TEST_HEADER_NAME), null);
     }
 }

@@ -15,16 +15,7 @@
  */
 package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
 
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * @author GraviteeSource Team
  */
-@Getter
-@Setter
-public class SubscribeErrorHandling {
-
-    private SubscribeErrorHandlingStrategy strategy;
-    private String headerName;
-}
+public record SubscribeErrorHandling(SubscribeErrorHandlingStrategy strategy, String headerName) {}

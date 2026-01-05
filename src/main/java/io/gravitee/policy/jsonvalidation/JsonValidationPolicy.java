@@ -18,9 +18,11 @@ package io.gravitee.policy.jsonvalidation;
 import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.HttpSource.MESSAGE_REQUEST;
 import static io.gravitee.policy.jsonvalidation.JsonValidationPolicy.HttpSource.MESSAGE_RESPONSE;
 import static io.gravitee.policy.jsonvalidation.handler.kafka.KafkaValidationResultHandlerFactory.createValidationResultHandler;
+import static io.gravitee.policy.jsonvalidation.schema.SchemaResolverFactory.createSchemaResolver;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.github.fge.jackson.JsonLoader;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import io.gravitee.common.http.MediaType;
@@ -39,8 +41,9 @@ import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeError
 import io.gravitee.policy.jsonvalidation.handler.ValidationResultHandler;
 import io.gravitee.policy.jsonvalidation.handler.kafka.KafkaValidationResultHandler;
 import io.gravitee.policy.jsonvalidation.schema.SchemaResolver;
-import io.gravitee.policy.jsonvalidation.schema.SchemaResolverFactory;
+import io.gravitee.policy.jsonvalidation.schema.ValidatableSchemaResolver;
 import io.gravitee.policy.v3.jsonvalidation.JsonValidationPolicyV3;
+import io.gravitee.resource.schema_registry.api.Schema;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
@@ -56,8 +59,9 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
 
     public static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
 
-    private final SchemaResolver schemaResolver;
     private final boolean straightRespond;
+
+    private final SchemaResolver schemaResolver;
 
     /**
      * Create a new JsonMetadata Policy instance based on its associated configuration
@@ -66,8 +70,10 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
      */
     public JsonValidationPolicy(JsonValidationPolicyConfiguration configuration) throws IOException {
         super(configuration);
-        schemaResolver = SchemaResolverFactory.createSchemaResolver(configuration);
         straightRespond = configuration.isStraightRespondMode();
+        schemaResolver = createSchemaResolver(configuration);
+
+        validateSchemaResolver();
     }
 
     @Override
@@ -80,7 +86,11 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return ctx
             .request()
             .body()
-            .flatMapCompletable(buffer -> validate(ctx, buffer, HttpSource.REQUEST, false, JsonValidationPolicy::interrupt))
+            .flatMapCompletable(buffer ->
+                schemaResolver
+                    .resolveSchema(ctx)
+                    .flatMapCompletable(schema -> validate(ctx, buffer, schema, HttpSource.REQUEST, false, JsonValidationPolicy::interrupt))
+            )
             .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), HttpSource.REQUEST, JsonValidationPolicy::interrupt));
     }
 
@@ -90,7 +100,18 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             .response()
             .body()
             .flatMapCompletable(buffer ->
-                validate(ctx, buffer, HttpSource.RESPONSE, configuration.isStraightRespondMode(), JsonValidationPolicy::interrupt)
+                schemaResolver
+                    .resolveSchema(ctx)
+                    .flatMapCompletable(schema ->
+                        validate(
+                            ctx,
+                            buffer,
+                            schema,
+                            HttpSource.RESPONSE,
+                            configuration.isStraightRespondMode(),
+                            JsonValidationPolicy::interrupt
+                        )
+                    )
             )
             .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), HttpSource.RESPONSE, JsonValidationPolicy::interrupt));
     }
@@ -100,15 +121,27 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return Completable.defer(() ->
             ctx
                 .request()
-                .onMessage(message -> {
-                    try {
-                        return validate(ctx, message.content(), MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt).andThen(
-                            Maybe.just(message)
-                        );
-                    } catch (IOException | ProcessingException e) {
-                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
-                    }
-                })
+                .onMessage(message ->
+                    schemaResolver
+                        .resolveSchema(ctx, message)
+                        .flatMapMaybe(schema -> {
+                            try {
+                                return validate(
+                                    ctx,
+                                    message.content(),
+                                    schema,
+                                    MESSAGE_REQUEST,
+                                    straightRespond,
+                                    JsonValidationPolicy::interrupt
+                                ).andThen(Maybe.just(message));
+                            } catch (IOException | ProcessingException e) {
+                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                            }
+                        })
+                        .onErrorResumeNext(th ->
+                            errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt).andThen(Maybe.just(message))
+                        )
+                )
                 .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt))
         );
     }
@@ -118,15 +151,29 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return Completable.defer(() ->
             ctx
                 .response()
-                .onMessage(message -> {
-                    try {
-                        return validate(ctx, message.content(), MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt).andThen(
-                            Maybe.just(message)
-                        );
-                    } catch (IOException | ProcessingException e) {
-                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
-                    }
-                })
+                .onMessage(message ->
+                    schemaResolver
+                        .resolveSchema(ctx, message)
+                        .flatMapMaybe(schema -> {
+                            try {
+                                return validate(
+                                    ctx,
+                                    message.content(),
+                                    schema,
+                                    MESSAGE_RESPONSE,
+                                    straightRespond,
+                                    JsonValidationPolicy::interrupt
+                                ).andThen(Maybe.just(message));
+                            } catch (IOException | ProcessingException e) {
+                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                            }
+                        })
+                        .onErrorResumeNext(th ->
+                            errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt).andThen(
+                                Maybe.just(message)
+                            )
+                        )
+                )
                 .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt))
         );
     }
@@ -134,13 +181,13 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     @Override
     public Completable onMessageRequest(KafkaMessageExecutionContext ctx) {
         return Completable.defer(() -> {
-            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::getOnPublish).isEmpty()) {
+            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::onPublish).isEmpty()) {
                 return Completable.error(
                     new IllegalArgumentException("JSON-validation policy for Kafka is not configured for onPublish phase.")
                 );
             }
 
-            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().getOnPublish());
+            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().onPublish());
             return ctx.request().onMessage(message -> validate(ctx, message, handler).andThen(Maybe.just(message)));
         });
     }
@@ -148,13 +195,13 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     @Override
     public Completable onMessageResponse(KafkaMessageExecutionContext ctx) {
         return Completable.defer(() -> {
-            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::getOnSubscribe).isEmpty()) {
+            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::onSubscribe).isEmpty()) {
                 return Completable.error(
                     new IllegalArgumentException("JSON-validation policy for Kafka is not configured for onSubscribe phase.")
                 );
             }
 
-            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().getOnSubscribe());
+            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().onSubscribe());
             return ctx.response().onMessage(message -> validate(ctx, message, handler).andThen(Maybe.just(message)));
         });
     }
@@ -162,11 +209,11 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     private <T extends HttpBaseExecutionContext> Completable validate(
         T ctx,
         Buffer buffer,
+        Schema schema,
         HttpSource source,
         boolean straightMode,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) throws IOException, ProcessingException {
-        var schema = schemaResolver.resolveSchema(ctx);
         var report = validatePayload(buffer, schema);
         if (!report.isSuccess()) {
             log.debug("Invalid body '{}'", report);
@@ -181,22 +228,35 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         KafkaMessage message,
         ValidationResultHandler<T, KafkaMessage> handler
     ) {
-        try {
-            var schema = schemaResolver.resolveSchema(ctx);
-            var report = validatePayload(message.content(), schema);
-            if (!report.isSuccess()) {
-                log.debug("Invalid message body '{}'", report);
-            }
-            return report.isSuccess() ? handler.onSuccess(ctx, message) : errorHandling(ctx, message, report.toString(), handler);
-        } catch (IOException | ProcessingException e) {
-            log.error("Error occurred during message validation: {}", e.getMessage(), e);
-            return errorHandling(ctx, message, e.toString(), handler);
-        }
+        return schemaResolver
+            .resolveSchema(ctx, message)
+            .flatMapCompletable(schema -> {
+                try {
+                    var report = validatePayload(message.content(), schema);
+                    if (!report.isSuccess()) {
+                        log.debug("Invalid message body '{}'", report);
+                    }
+                    return report.isSuccess() ? handler.onSuccess(ctx, message) : errorHandling(ctx, message, report.toString(), handler);
+                } catch (IOException | ProcessingException e) {
+                    log.error("Error occurred during message validation: {}", e.getMessage(), e);
+                    return errorHandling(ctx, message, e.toString(), handler);
+                }
+            });
     }
 
-    private ProcessingReport validatePayload(Buffer buffer, JsonNode schema) throws IOException, ProcessingException {
+    private ProcessingReport validatePayload(Buffer buffer, Schema schema) throws IOException, ProcessingException {
+        JsonNode parsedSchema = JsonLoader.fromString(schema.getContent());
+
         JsonNode jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
-        return configuration.isValidateUnchecked() ? validator.validateUnchecked(schema, jsonNode) : validator.validate(schema, jsonNode);
+        return configuration.isValidateUnchecked()
+            ? validator.validateUnchecked(parsedSchema, jsonNode)
+            : validator.validate(parsedSchema, jsonNode);
+    }
+
+    private void validateSchemaResolver() throws IOException {
+        if (schemaResolver instanceof ValidatableSchemaResolver) {
+            ((ValidatableSchemaResolver) schemaResolver).validate();
+        }
     }
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
@@ -230,7 +290,6 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         String throwableMessage,
         ValidationResultHandler<T, KafkaMessage> handler
     ) {
-        ctx.metrics().setErrorMessage(throwableMessage);
         return handler.onError(ctx, kafkaMessage, throwableMessage);
     }
 
