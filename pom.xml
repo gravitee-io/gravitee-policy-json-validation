@@ -35,6 +35,8 @@
 
     <properties>
         <gravitee-apim.version>4.6.24</gravitee-apim.version>
+        <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
+        <gravitee-resource-schema-registry-provider-api.version>1.0.1</gravitee-resource-schema-registry-provider-api.version>
         <gravitee-reactor-message.version>5.0.2</gravitee-reactor-message.version>
         <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
@@ -69,6 +71,19 @@
         <dependency>
             <groupId>io.gravitee.policy</groupId>
             <artifactId>gravitee-policy-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.resource</groupId>
+            <artifactId>gravitee-resource-schema-registry-provider-api</artifactId>
+            <version>${gravitee-resource-schema-registry-provider-api.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.gravitee.resource</groupId>
+            <artifactId>gravitee-resource-api</artifactId>
+            <version>${gravitee-resource-api.version}</version>
             <scope>provided</scope>
         </dependency>
 

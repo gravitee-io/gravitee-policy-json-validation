@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
+package io.gravitee.policy.jsonvalidation.configuration.schema;
 
-/**
- * @author GraviteeSource Team
- */
-public record PublishErrorHandling(PublishValidationErrorStrategy strategy) {}
+public enum SchemaSourceType {
+    STATIC_SCHEMA,
+    SCHEMA_REGISTRY_RESOURCE,
+}

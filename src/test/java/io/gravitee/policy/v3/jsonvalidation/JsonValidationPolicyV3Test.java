@@ -34,6 +34,7 @@ import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
 import io.gravitee.reporter.api.http.Metrics;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -92,7 +93,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldAcceptValidPayload() {
+    public void shouldAcceptValidPayload() throws IOException {
         when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
         JsonValidationPolicyV3 policy = new JsonValidationPolicyV3(configuration);
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
@@ -176,7 +177,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldAcceptValidResponsePayload() {
+    public void shouldAcceptValidResponsePayload() throws IOException {
         when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
         JsonValidationPolicyV3 policy = new JsonValidationPolicyV3(configuration);
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");

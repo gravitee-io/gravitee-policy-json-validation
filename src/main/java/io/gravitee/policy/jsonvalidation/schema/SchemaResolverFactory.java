@@ -16,14 +16,34 @@
 package io.gravitee.policy.jsonvalidation.schema;
 
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
-import java.io.IOException;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSource;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSourceType;
 
 /**
  * @author GraviteeSource Team
  */
 public class SchemaResolverFactory {
 
-    public static SchemaResolver createSchemaResolver(JsonValidationPolicyConfiguration configuration) throws IOException {
-        return new InlineSchemaResolver(configuration.getSchema());
+    public static SchemaResolver createSchemaResolver(JsonValidationPolicyConfiguration configuration) {
+        SchemaSource schemaSource = configuration.getSchemaSource();
+
+        if (schemaSource == null) {
+            return legacySchemaResolver(configuration);
+        }
+
+        SchemaSourceType schemaSourceType = schemaSource.getSourceType();
+
+        return switch (schemaSourceType) {
+            case STATIC_SCHEMA -> new StaticSchemaResolver(schemaSource.getStaticSchema());
+            case SCHEMA_REGISTRY_RESOURCE -> new ResourceBasedSchemaResolver(
+                schemaSource.getResourceName(),
+                schemaSource.getSchemaMapping()
+            );
+        };
+    }
+
+    @SuppressWarnings("deprecation")
+    private static StaticSchemaResolver legacySchemaResolver(JsonValidationPolicyConfiguration configuration) {
+        return new StaticSchemaResolver(configuration.getSchema());
     }
 }

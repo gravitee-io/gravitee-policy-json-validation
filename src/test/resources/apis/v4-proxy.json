@@ -67,7 +67,10 @@
                     "enabled": true,
                     "policy": "json-validation",
                     "configuration": {
-                        "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"title\": \"Example user object\",\n  \"description\": \"\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"user\": {\n      \"type\": \"string\",\n      \"description\": \"The user\"\n    }\n  },\n  \"required\": [\n    \"user\"\n  ]\n}"
+                        "schemaSource": {
+                            "sourceType": "STATIC_SCHEMA",
+                            "staticSchema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"title\": \"Example user object\",\n  \"description\": \"\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"user\": {\n      \"type\": \"string\",\n      \"description\": \"The user\"\n    }\n  },\n  \"required\": [\n    \"user\"\n  ]\n}"
+                        }
                     }
                 }
             ],

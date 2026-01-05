@@ -8,11 +8,17 @@
 [![CircleCI](https://circleci.com/gh/gravitee-io/gravitee-policy-json-validation.svg?style=svg)](https://circleci.com/gh/gravitee-io/gravitee-policy-json-validation)
 
 ## Overview
-You can use the `json-validation` policy to validate JSON payloads. This policy uses https://github.com/java-json-tools/json-schema-validator[JSON Schema Validator^].
+You can use the `json-validation` policy to validate JSON payloads. This policy
+uses [JSON Schema Validator](https://github.com/java-json-tools/json-schema-validator).
 
-For HTTP protocols: it returns 400 BAD REQUEST when request validation fails and 500 INTERNAL ERROR when response validation fails, with a custom error message body.
+For HTTP protocols: it returns 400 BAD REQUEST when request validation fails and 500 INTERNAL ERROR when response
+validation fails, with a custom error message body.
 
-For native protocols (Kafka Gateway): it executes configured strategy (rejects produce request, invalidates partition or appends record header).
+For native protocols (Kafka Gateway): it executes configured strategy (rejects produce request, invalidates partition or
+appends record header).
+
+It supports multiple sources of the schema used for validation (static or schema registry resource based with dynamic
+schema subject mapping).
 
 It can inject processing report messages into request metrics for analytics.
 
@@ -32,9 +38,9 @@ It can inject processing report messages into request metrics for analytics.
 
 ### Native API - Kafka Gateway
 
-| onRequest | onResponse | onMessageRequest | onMessageResponse |
-|-----------|------------|------------------|-------------------|
-|           |            | X                | X                 |
+| onRequest | onResponse | PUBLISH (onMessageRequest) | SUBSCRIBE (onMessageResponse) |
+|-----------|------------|----------------------------|-------------------------------|
+|           |            | X                          | X                             |
 
 
 ## Usage
@@ -44,11 +50,19 @@ It can inject processing report messages into request metrics for analytics.
 |---------------------|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|-------------------------|
 | scope               | X                  | Policy scope from where the policy is executed                                                                                                                                                                                                          | Policy scope                 | REQUEST_CONTENT         |
 | errorMessage        | X                  | Custom error message in JSON format. SpEL is allowed.                                                                                                                                                                                                   | string                       | {"error":"Bad request"} |
-| schema              | X                  | JSON schema.                                                                                                                                                                                                                                            | string                       |                         |
+| schema (deprecated) |                    | Deprecated configuration for JSON schema, use schema source instead.                                                                                                                                                                                    | string                       |                         |
+| schemaSource        | X                  | Defines the schema source to resolve the validation schema.                                                                                                                                                                                             | Schema Source object         |                         |
 | deepCheck           |                    | Validate descendant even if JSON parent container is invalid                                                                                                                                                                                            | boolean                      | false                   |
 | validateUnchecked   |                    | Unchecked validation means that conditions which would normally cause the processing to stop with an exception are instead inserted into the resulting report. Warning: anomalous events (e.g. invalid schema or unresolved JSON Reference) are masked. | boolean                      | false                   |
 | straightRespondMode |                    | Only for RESPONSE scope. Straight respond mode means that responses failed to validate are still sent to the user without replacement. Validation failure messages are written to metrics for inspection.                                               | boolean                      | false                   |
 | nativeErrorHandling | X (for Native API) | Defines error handling strategy for consumer/producer if policy is used in native API (Kafka Gateway protocol).                                                                                                                                         | Native Error Handling object |                         |
+
+### Schema Source
+
+Specifies the source used to resolve schemas for validation. You can choose between:
+
+- **Static schema** – provide the schema definition directly.
+- **Resource-based schema registry** – provide the resource name and a mapping expression to resolve the schema subject dynamically (e.g., using `{#message.topic}` to derive the subject from the topic name).
 
 ### Native Error Handling
 
@@ -117,7 +131,7 @@ Strikethrough text indicates that a version is deprecated.
 | Deep check<br>`deepCheck`| boolean|  | | Instructs the validator as to whether it should validate children even if the container (array or object) fails to validate.|
 | Http error message<br>`errorMessage`| string|  | | Http error message to send when request is not valid. Status code is 400 as Bad request for REQUEST scope. Status code is 500 as Internal Error for RESPONSE scope (without straight respond mode). e.g: {"error":"Bad request"}|
 | Error handling strategy<br>`nativeErrorHandling`| object|  | | <br/>See "Error handling strategy" section.|
-| JSON Schema<br>`schema`| string| ✅| | JSON Schema used for request payload validation|
+| SchemaSource<br>`schemaSource`| object|  | | Schema source<br/>See "SchemaSource" section.|
 | Straight respond mode<br>`straightRespondMode`| boolean|  | | Only for RESPONSE scope. Straight respond mode means that responses failed to validate still will be sent to user without replacement. Validation failures messages are still being written to the metrics for further inspection.|
 | Validate unchecked<br>`validateUnchecked`| boolean|  | | Unchecked validation means that conditions which would normally cause the processing to stop with an exception are instead inserted into the resulting report. Warning: this means that anomalous events like an unresolvable JSON Reference, or an invalid schema, are masked!|
 
@@ -157,6 +171,25 @@ Strikethrough text indicates that a version is deprecated.
 | Record header name<br>`headerName`| string| ✅| | Record header name to append validation error|
 
 
+#### SchemaSource (Object)
+| Name <br>`json name`  | Type <br>`constraint`  | Mandatory  | Description  |
+|:----------------------|:-----------------------|:----------:|:-------------|
+| Source Type<br>`sourceType`| object| ✅| Source Type of SchemaSource<br>Values: `STATIC_SCHEMA` `SCHEMA_REGISTRY_RESOURCE`|
+
+
+#### SchemaSource: Static schema `sourceType = "STATIC_SCHEMA"` 
+| Name <br>`json name`  | Type <br>`constraint`  | Mandatory  | Default  | Description  |
+|:----------------------|:-----------------------|:----------:|:---------|:-------------|
+| JSON Schema<br>`staticSchema`| string| ✅| | JSON Schema used for request payload validation|
+
+
+#### SchemaSource: Schema registry `sourceType = "SCHEMA_REGISTRY_RESOURCE"` 
+| Name <br>`json name`  | Type <br>`constraint`  | Mandatory  | Default  | Description  |
+|:----------------------|:-----------------------|:----------:|:---------|:-------------|
+| Resource name<br>`resourceName`| string| ✅| | Name of the schema registry resource|
+| Schema mapping<br>`schemaMapping`| string| ✅| | EL that evaluates to schema subject|
+
+
 
 
 ## Examples
@@ -186,7 +219,10 @@ Strikethrough text indicates that a version is deprecated.
             "policy": "json-validation",
             "configuration":
               {
-                  "schema": "{\"title\": \"Person\", \"type\": \"object\", \"properties\": {\"name\": {\"type\": \"string\"}}, \"required\": [\"name\"]}",
+                  "schemaSource": {
+                      "sourceType": "STATIC_SCHEMA",
+                      "staticSchema": "{\"title\": \"Person\", \"type\": \"object\", \"properties\": {\"name\": {\"type\": \"string\"}}, \"required\": [\"name\"]}"
+                  },
                   "errorMessage": "Payload does not match configured schema",
                   "validateUnchecked": false,
                   "deepCheck": false
@@ -224,7 +260,10 @@ Strikethrough text indicates that a version is deprecated.
             "policy": "json-validation",
             "configuration":
               {
-                  "schema": "{\"title\": \"Person\", \"type\": \"object\", \"properties\": {\"name\": {\"type\": \"string\"}}, \"required\": [\"name\"]}",
+                  "schemaSource": {
+                      "sourceType": "STATIC_SCHEMA",
+                      "staticSchema": "{\"title\": \"Person\", \"type\": \"object\", \"properties\": {\"name\": {\"type\": \"string\"}}, \"required\": [\"name\"]}"
+                  },
                   "errorMessage": "Payload does not match configured schema",
                   "validateUnchecked": false,
                   "deepCheck": false
@@ -259,7 +298,9 @@ spec:
             configuration:
               deepCheck: false
               errorMessage: Payload does not match configured schema
-              schema: '{"title": "Person", "type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}'
+              schemaSource:
+                  sourceType: STATIC_SCHEMA
+                  staticSchema: '{"title": "Person", "type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}'
               validateUnchecked: false
 
 ```
@@ -285,7 +326,9 @@ spec:
             configuration:
               deepCheck: false
               errorMessage: Payload does not match configured schema
-              schema: '{"title": "Person", "type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}'
+              schemaSource:
+                  sourceType: STATIC_SCHEMA
+                  staticSchema: '{"title": "Person", "type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}'
               validateUnchecked: false
 
 ```
@@ -312,7 +355,10 @@ spec:
               nativeErrorHandling:
                   onSubscribe:
                       strategy: INVALIDATE_PARTITION
-              schema: '{"title": "Person", "type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}'
+              schemaSource:
+                  resourceName: externalSchemaRegistry
+                  schemaMapping: '{#message.topic}'
+                  sourceType: SCHEMA_REGISTRY_RESOURCE
 
 ```
 *Kafka subscribe with ADD_RECORD_HEADER strategy*
@@ -339,7 +385,10 @@ spec:
                   onSubscribe:
                       headerName: ValidationError
                       strategy: ADD_RECORD_HEADER
-              schema: '{"title": "Person", "type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}'
+              schemaSource:
+                  resourceName: externalSchemaRegistry
+                  schemaMapping: '{#message.topic}'
+                  sourceType: SCHEMA_REGISTRY_RESOURCE
 
 ```
 *Kafka publish with FAIL_WITH_INVALID_RECORD strategy*
@@ -365,7 +414,10 @@ spec:
               nativeErrorHandling:
                   onPublish:
                       strategy: FAIL_WITH_INVALID_RECORD
-              schema: '{"title": "Person", "type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"]}'
+              schemaSource:
+                  resourceName: externalSchemaRegistry
+                  schemaMapping: '{#message.topic}'
+                  sourceType: SCHEMA_REGISTRY_RESOURCE
 
 ```
 
