@@ -15,6 +15,7 @@
  */
 package io.gravitee.policy.jsonvalidation.schema;
 
+import com.github.fge.jackson.JsonLoader;
 import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
@@ -22,14 +23,38 @@ import io.gravitee.gateway.reactive.api.message.Message;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.resource.schema_registry.api.Schema;
 import io.reactivex.rxjava3.core.Single;
+import java.io.IOException;
+import lombok.RequiredArgsConstructor;
 
 /**
  * @author GraviteeSource Team
  */
-public interface SchemaResolver {
-    Single<Schema> resolveSchema(BaseExecutionContext ctx);
+@RequiredArgsConstructor
+public class StaticSchemaResolver implements ValidatableSchemaResolver {
 
-    Single<Schema> resolveSchema(HttpMessageExecutionContext ctx, Message message);
+    private final StaticSchema staticSchema;
 
-    Single<Schema> resolveSchema(KafkaMessageExecutionContext ctx, KafkaMessage message);
+    StaticSchemaResolver(String schema) {
+        this.staticSchema = new StaticSchema(schema);
+    }
+
+    @Override
+    public Single<Schema> resolveSchema(BaseExecutionContext ctx) {
+        return Single.just(staticSchema);
+    }
+
+    @Override
+    public Single<Schema> resolveSchema(HttpMessageExecutionContext ctx, Message message) {
+        return Single.just(staticSchema);
+    }
+
+    @Override
+    public Single<Schema> resolveSchema(KafkaMessageExecutionContext ctx, KafkaMessage message) {
+        return Single.just(staticSchema);
+    }
+
+    @Override
+    public void validate() throws IOException {
+        JsonLoader.fromString(staticSchema.getContent());
+    }
 }

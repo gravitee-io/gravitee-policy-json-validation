@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
+package io.gravitee.policy.jsonvalidation.schema;
 
-/**
- * @author GraviteeSource Team
- */
-public record PublishErrorHandling(PublishValidationErrorStrategy strategy) {}
+import java.io.IOException;
+
+public interface ValidatableSchemaResolver extends SchemaResolver {
+    void validate() throws IOException;
+}

@@ -57,7 +57,10 @@
                     "enabled": true,
                     "policy": "json-validation",
                     "configuration": {
-                        "schema": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"title\": \"Message\",\n  \"description\": \"Policy to demonstrate bug\",\n  \"properties\": {\n    \"message\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"message\"\n  ]\n}",
+                        "schemaSource": {
+                            "sourceType": "STATIC_SCHEMA",
+                            "staticSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"title\": \"Message\",\n  \"description\": \"Policy to demonstrate bug\",\n  \"properties\": {\n    \"message\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"message\"\n  ]\n}"
+                        },
                         "scope": "REQUEST_CONTENT",
                         "errorMessage": "{\n    \"message\": \"Invalid format of your message\",\n    \"http_status_code\": 400\n}"
                     }

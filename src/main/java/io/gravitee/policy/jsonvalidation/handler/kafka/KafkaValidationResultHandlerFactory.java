@@ -24,15 +24,15 @@ import io.gravitee.policy.jsonvalidation.configuration.errorhandling.SubscribeEr
 public class KafkaValidationResultHandlerFactory {
 
     public static KafkaValidationResultHandler createValidationResultHandler(PublishErrorHandling configuration) {
-        return switch (configuration.getStrategy()) {
+        return switch (configuration.strategy()) {
             case FAIL_WITH_INVALID_RECORD -> new FailProduceRequestWithInvalidRecord();
         };
     }
 
     public static KafkaValidationResultHandler createValidationResultHandler(SubscribeErrorHandling configuration) {
-        return switch (configuration.getStrategy()) {
+        return switch (configuration.strategy()) {
             case INVALIDATE_PARTITION -> new InvalidatePartitionAtFetchResponse();
-            case ADD_RECORD_HEADER -> new AddHeaderToInvalidRecord(configuration.getHeaderName());
+            case ADD_RECORD_HEADER -> new AddHeaderToInvalidRecord(configuration.headerName());
         };
     }
 }
