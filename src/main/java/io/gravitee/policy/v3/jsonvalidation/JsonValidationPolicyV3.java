@@ -15,8 +15,6 @@
  */
 package io.gravitee.policy.v3.jsonvalidation;
 
-import static io.gravitee.policy.jsonvalidation.schema.SchemaResolverFactory.createSchemaResolver;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
@@ -35,6 +33,7 @@ import io.gravitee.policy.api.annotations.OnRequestContent;
 import io.gravitee.policy.api.annotations.OnResponseContent;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
+import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,7 +118,7 @@ public class JsonValidationPolicyV3 {
     ) {
         return new PassThroughBuffer((buffer, writeBufferAndEnd) -> {
             try {
-                JsonNode schema = createSchemaResolver(configuration).resolveSchema(executionContext, request, response);
+                JsonNode schema = resolveLegacySchema(request, response, executionContext);
                 JsonNode content = JsonLoader.fromString(buffer.toString());
 
                 ProcessingReport report = getReport(schema, content);
@@ -163,6 +162,11 @@ public class JsonValidationPolicyV3 {
             String errorMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
             policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.TEXT_PLAIN));
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private JsonNode resolveLegacySchema(Request request, Response response, ExecutionContext executionContext) throws IOException {
+        return JsonLoader.fromString(configuration.getSchema());
     }
 
     private record ErrorParams(String payloadKeyError, String formatKeyError, int errorStatus) {}

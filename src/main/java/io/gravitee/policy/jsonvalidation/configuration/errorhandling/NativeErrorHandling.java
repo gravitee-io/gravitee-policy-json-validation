@@ -15,16 +15,7 @@
  */
 package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
 
-import lombok.Getter;
-import lombok.Setter;
-
 /**
  * @author GraviteeSource Team
  */
-@Getter
-@Setter
-public class NativeErrorHandling {
-
-    private SubscribeErrorHandling onSubscribe;
-    private PublishErrorHandling onPublish;
-}
+public record NativeErrorHandling(SubscribeErrorHandling onSubscribe, PublishErrorHandling onPublish) {}

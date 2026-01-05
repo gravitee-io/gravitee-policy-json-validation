@@ -1,0 +1,9 @@
+{
+    "schemaSource": {
+        "sourceType": "STATIC_SCHEMA",
+        "staticSchema": "{\"title\": \"Person\", \"type\": \"object\", \"properties\": {\"name\": {\"type\": \"string\"}}, \"required\": [\"name\"]}"
+    },
+    "errorMessage": "Payload does not match configured schema",
+    "validateUnchecked": false,
+    "deepCheck": false
+}
