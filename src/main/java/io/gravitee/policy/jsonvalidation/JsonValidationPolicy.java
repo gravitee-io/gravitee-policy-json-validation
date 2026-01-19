@@ -25,10 +25,16 @@ import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import io.gravitee.common.http.MediaType;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.ExecutionFailure;
+import io.gravitee.gateway.reactive.api.context.base.BaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
+import io.gravitee.gateway.reactive.api.context.kafka.KafkaExecutionContext;
+import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
+import io.gravitee.gateway.reactive.api.message.Message;
+import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
+import io.gravitee.gateway.reactive.api.policy.kafka.KafkaPolicy;
 import io.gravitee.policy.JsonValidationException;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.v3.jsonvalidation.JsonValidationPolicyV3;
@@ -36,10 +42,13 @@ import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import lombok.SneakyThrows;
+import org.apache.kafka.common.protocol.Errors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JsonValidationPolicy extends JsonValidationPolicyV3 implements HttpPolicy {
+public class JsonValidationPolicy extends JsonValidationPolicyV3 implements HttpPolicy, KafkaPolicy {
 
     private static final Logger log = LoggerFactory.getLogger(JsonValidationPolicy.class);
     public static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
@@ -85,41 +94,42 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
 
     @Override
     public Completable onMessageRequest(HttpMessageExecutionContext ctx) {
-        return Completable.defer(() ->
-            ctx
-                .request()
-                .onMessage(message -> {
-                    try {
-                        return validate(ctx, message.content(), MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt).andThen(
-                            Maybe.just(message)
-                        );
-                    } catch (IOException | ProcessingException e) {
-                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
-                    }
-                })
-                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt))
-        );
+        return Completable.defer(() -> processMessages(ctx, ctx.request()::onMessage, MESSAGE_REQUEST, JsonValidationPolicy::interrupt));
     }
 
     @Override
     public Completable onMessageResponse(HttpMessageExecutionContext ctx) {
-        return Completable.defer(() ->
-            ctx
-                .response()
-                .onMessage(message -> {
-                    try {
-                        return validate(ctx, message.content(), MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt).andThen(
-                            Maybe.just(message)
-                        );
-                    } catch (IOException | ProcessingException e) {
-                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
-                    }
-                })
-                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt))
-        );
+        return Completable.defer(() -> processMessages(ctx, ctx.response()::onMessage, MESSAGE_RESPONSE, JsonValidationPolicy::interrupt));
     }
 
-    private <T extends HttpBaseExecutionContext> Completable validate(
+    @Override
+    public Completable onMessageRequest(KafkaMessageExecutionContext ctx) {
+        return processMessages(ctx, ctx.request()::onMessage, MESSAGE_REQUEST, JsonValidationPolicy::interrupt);
+    }
+
+    @Override
+    public Completable onMessageResponse(KafkaMessageExecutionContext ctx) {
+        return processMessages(ctx, ctx.response()::onMessage, MESSAGE_RESPONSE, JsonValidationPolicy::interrupt);
+    }
+
+    private <T extends BaseExecutionContext, M extends Message> Completable processMessages(
+        T ctx,
+        Function<Function<M, Maybe<M>>, Completable> onMessage,
+        Source source,
+        BiFunction<T, ExecutionFailure, Completable> interrupt
+    ) {
+        return onMessage
+            .apply(message -> {
+                try {
+                    return validate(ctx, message.content(), source, straightRespond, interrupt).andThen(Maybe.just(message));
+                } catch (IOException | ProcessingException e) {
+                    throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                }
+            })
+            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), source, interrupt));
+    }
+
+    private <T extends BaseExecutionContext> Completable validate(
         T ctx,
         Buffer buffer,
         Source source,
@@ -138,7 +148,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             : errorHandling(ctx, report.toString(), source.status, source.getPayloadKey(), straightMode, interrupt);
     }
 
-    private <T extends HttpBaseExecutionContext> Completable errorHandling(
+    private <T extends BaseExecutionContext> Completable errorHandling(
         T ctx,
         String th,
         Source source,
@@ -147,7 +157,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return errorHandling(ctx, th, source.status, source.getFormatKey(), false, interrupt);
     }
 
-    private <T extends HttpBaseExecutionContext> Completable errorHandling(
+    private <T extends BaseExecutionContext> Completable errorHandling(
         T ctx,
         String th,
         int statusCode,
@@ -163,7 +173,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             );
     }
 
-    private Maybe<String> errorMessage(HttpBaseExecutionContext executionContext, int httpStatusCode) {
+    private Maybe<String> errorMessage(BaseExecutionContext executionContext, int httpStatusCode) {
         String defaultMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
         return configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()
             ? executionContext.getTemplateEngine().eval(configuration.getErrorMessage(), String.class)
@@ -176,6 +186,16 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
 
     private static Completable interrupt(HttpMessageExecutionContext ctx, ExecutionFailure executionFailure) {
         return ctx.interruptMessageWith(executionFailure).ignoreElement();
+    }
+
+    private static Completable interrupt(KafkaMessageExecutionContext ctx, ExecutionFailure executionFailure) {
+        final Errors kafkaError;
+        if (executionFailure.statusCode() >= 400 && executionFailure.statusCode() < 500) {
+            kafkaError = Errors.INVALID_REQUEST;
+        } else {
+            kafkaError = Errors.UNKNOWN_SERVER_ERROR;
+        }
+        return ctx.executionContext().interruptWith(kafkaError);
     }
 
     enum Source {
