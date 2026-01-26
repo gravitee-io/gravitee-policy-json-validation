@@ -1,3 +1,11 @@
+# [2.2.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.0...2.2.0-alpha.1) (2026-01-26)
+
+
+### Features
+
+* added support for kafka gateway protocol ([e77fd4b](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/e77fd4bf756011596352c1bc148e9b7bd68f385d))
+* integration with schema registry resources ([c6ad54d](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/c6ad54d92e80653d214005c94cbfc92fd18ab6f5))
+
 # [2.1.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.3...2.1.0) (2025-11-13)
 
 
