@@ -22,6 +22,7 @@ import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessag
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessageFactory.createFetchResponseWithTwoPartitions;
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.TEST_HEADER_NAME;
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.createNativeErrorHandling;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -65,6 +66,14 @@ class JsonValidationPolicyTest {
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "preferences": {
+                    "type": "object",
+                    "properties": {
+                        "newsletter": {
+                            "type": "boolean"
+                        }
+                    }
                 }
             },
             "required": ["name"]
@@ -90,6 +99,9 @@ class JsonValidationPolicyTest {
         @Mock
         HttpPlainRequest request;
 
+        @Captor
+        ArgumentCaptor<io.gravitee.gateway.reactive.api.ExecutionFailure> executionFailureCaptor;
+
         @BeforeEach
         void setUp() {
             var metrics = Metrics.builder().build();
@@ -109,6 +121,9 @@ class JsonValidationPolicyTest {
                 .onRequest(ctx)
                 .test()
                 .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_FORMAT");
         }
 
         @Test
@@ -132,6 +147,49 @@ class JsonValidationPolicyTest {
                 .onRequest(ctx)
                 .test()
                 .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_PAYLOAD");
+        }
+
+        @Test
+        void badBodyIncorrectType() throws IOException {
+            // Given
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            when(request.body()).thenReturn(Maybe.just(Buffer.buffer("{\"name\":123}")));
+
+            // When
+            policy
+                .onRequest(ctx)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_PAYLOAD");
+        }
+
+        @Test
+        void badBodyNestedObject() throws IOException {
+            // Given
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            // Payload similar to user's
+            String payload = """
+                {
+                  "name": "foo",
+                  "preferences": {
+                    "newsletter": "string-instead-of-boolean"
+                  }
+                }""";
+            when(request.body()).thenReturn(Maybe.just(Buffer.buffer(payload)));
+
+            // When
+            policy
+                .onRequest(ctx)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_PAYLOAD");
         }
     }
 
@@ -146,6 +204,9 @@ class JsonValidationPolicyTest {
 
         @Captor
         ArgumentCaptor<java.util.function.Function<Message, Maybe<Message>>> messageCaptor;
+
+        @Captor
+        ArgumentCaptor<io.gravitee.gateway.reactive.api.ExecutionFailure> executionFailureCaptor;
 
         @BeforeEach
         void setUp() {
@@ -176,6 +237,11 @@ class JsonValidationPolicyTest {
                 .apply(message)
                 .test()
                 .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptMessageWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo(
+                "JSON_INVALID_MESSAGE_REQUEST_PAYLOAD"
+            );
         }
     }
 
@@ -190,6 +256,9 @@ class JsonValidationPolicyTest {
 
         @Captor
         ArgumentCaptor<java.util.function.Function<Message, Maybe<Message>>> messageCaptor;
+
+        @Captor
+        ArgumentCaptor<io.gravitee.gateway.reactive.api.ExecutionFailure> executionFailureCaptor;
 
         @BeforeEach
         void setUp() {
@@ -220,6 +289,11 @@ class JsonValidationPolicyTest {
                 .apply(message)
                 .test()
                 .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptMessageWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo(
+                "JSON_INVALID_MESSAGE_RESPONSE_PAYLOAD"
+            );
         }
     }
 
