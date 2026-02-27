@@ -256,7 +256,7 @@ public class JsonValidationPolicyV3Test {
         readWriteStream.write(buffer);
         readWriteStream.end();
 
-        assertThat(hasCalledEndOnReadWriteStreamParentClass).isFalse();
+        assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
 
         policyAssertions();
     }
