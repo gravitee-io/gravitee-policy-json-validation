@@ -256,7 +256,6 @@ public class JsonValidationPolicyV3Test {
         readWriteStream.write(buffer);
         readWriteStream.end();
 
-        // In straight respond mode, stream should complete even on error to avoid DoS
         assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
 
         policyAssertions();

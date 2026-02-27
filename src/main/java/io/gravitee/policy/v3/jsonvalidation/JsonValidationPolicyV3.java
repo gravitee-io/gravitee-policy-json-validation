@@ -120,8 +120,8 @@ public class JsonValidationPolicyV3 {
             try {
                 JsonNode schema = resolveLegacySchema(request, response, executionContext);
                 JsonNode content = JsonLoader.fromString(buffer.toString());
-
                 ProcessingReport report = getReport(schema, content);
+
                 if (!report.isSuccess()) {
                     request.metrics().setMessage(report.toString());
                     if (!straightMode) {
@@ -133,17 +133,11 @@ public class JsonValidationPolicyV3 {
                 } else {
                     writeBufferAndEnd.run();
                 }
-            } catch (ProcessingException ex) {
-                request.metrics().setMessage(ex.toString());
-                if (!straightMode) {
-                    sendErrorResponse(errorParams.payloadKeyError(), executionContext, policyChain, errorParams.errorStatus());
-                } else {
-                    writeBufferAndEnd.run();
-                }
             } catch (Exception ex) {
                 request.metrics().setMessage(ex.toString());
                 if (!straightMode) {
-                    sendErrorResponse(errorParams.formatKeyError(), executionContext, policyChain, errorParams.errorStatus());
+                    String key = ex instanceof ProcessingException ? errorParams.payloadKeyError() : errorParams.formatKeyError();
+                    sendErrorResponse(key, executionContext, policyChain, errorParams.errorStatus());
                 } else {
                     writeBufferAndEnd.run();
                 }

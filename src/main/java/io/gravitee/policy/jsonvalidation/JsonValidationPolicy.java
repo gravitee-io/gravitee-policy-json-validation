@@ -91,7 +91,12 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                     .resolveSchema(ctx)
                     .flatMapCompletable(schema -> validate(ctx, buffer, schema, HttpSource.REQUEST, false, JsonValidationPolicy::interrupt))
             )
-            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), HttpSource.REQUEST, JsonValidationPolicy::interrupt));
+            .onErrorResumeNext(th -> {
+                if (th instanceof IOException || th instanceof ProcessingException) {
+                    return errorHandling(ctx, th, HttpSource.REQUEST, false, JsonValidationPolicy::interrupt);
+                }
+                return Completable.error(th);
+            });
     }
 
     @Override
@@ -113,7 +118,18 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                         )
                     )
             )
-            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), HttpSource.RESPONSE, JsonValidationPolicy::interrupt));
+            .onErrorResumeNext(th -> {
+                if (th instanceof IOException || th instanceof ProcessingException) {
+                    return errorHandling(
+                        ctx,
+                        th,
+                        HttpSource.RESPONSE,
+                        configuration.isStraightRespondMode(),
+                        JsonValidationPolicy::interrupt
+                    );
+                }
+                return Completable.error(th);
+            });
     }
 
     @Override
@@ -135,14 +151,24 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                                     JsonValidationPolicy::interrupt
                                 ).andThen(Maybe.just(message));
                             } catch (IOException | ProcessingException e) {
-                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage(), e);
                             }
                         })
-                        .onErrorResumeNext(th ->
-                            errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt).andThen(Maybe.just(message))
-                        )
+                        .onErrorResumeNext(th -> {
+                            if (th instanceof JsonValidationException) {
+                                return errorHandling(ctx, th, MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt).andThen(
+                                    Maybe.just(message)
+                                );
+                            }
+                            return Maybe.error(th);
+                        })
                 )
-                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt))
+                .onErrorResumeNext(th -> {
+                    if (th instanceof JsonValidationException) {
+                        return errorHandling(ctx, th, MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt);
+                    }
+                    return Completable.error(th);
+                })
         );
     }
 
@@ -165,16 +191,24 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                                     JsonValidationPolicy::interrupt
                                 ).andThen(Maybe.just(message));
                             } catch (IOException | ProcessingException e) {
-                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage(), e);
                             }
                         })
-                        .onErrorResumeNext(th ->
-                            errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt).andThen(
-                                Maybe.just(message)
-                            )
-                        )
+                        .onErrorResumeNext(th -> {
+                            if (th instanceof JsonValidationException) {
+                                return errorHandling(ctx, th, MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt).andThen(
+                                    Maybe.just(message)
+                                );
+                            }
+                            return Maybe.error(th);
+                        })
                 )
-                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt))
+                .onErrorResumeNext(th -> {
+                    if (th instanceof JsonValidationException) {
+                        return errorHandling(ctx, th, MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt);
+                    }
+                    return Completable.error(th);
+                })
         );
     }
 
@@ -261,11 +295,15 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
         T ctx,
-        String th,
+        Throwable th,
         HttpSource source,
+        boolean straightMode,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) {
-        return errorHandling(ctx, th, source.status, source.getFormatKey(), false, interrupt);
+        String key = (th instanceof ProcessingException || th.getCause() instanceof ProcessingException)
+            ? source.getPayloadKey()
+            : source.getFormatKey();
+        return errorHandling(ctx, th.getMessage(), source.status, key, straightMode, interrupt);
     }
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
