@@ -1,3 +1,10 @@
+# [2.2.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.1...2.2.0-alpha.2) (2026-03-10)
+
+
+### Bug Fixes
+
+* Improve JSON validation error handling ([d21be00](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/d21be00ddf6aa079cb510c92d2800cdeb71620da))
+
 # [2.2.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.0...2.2.0-alpha.1) (2026-01-26)
 
 
