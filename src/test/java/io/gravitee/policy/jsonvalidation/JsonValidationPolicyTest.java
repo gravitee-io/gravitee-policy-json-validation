@@ -239,9 +239,7 @@ class JsonValidationPolicyTest {
                 .assertError(throwable -> throwable instanceof MyCustomException);
 
             verify(ctx).interruptMessageWith(executionFailureCaptor.capture());
-            assertThat(executionFailureCaptor.getValue().key()).isEqualTo(
-                "JSON_INVALID_MESSAGE_REQUEST_PAYLOAD"
-            );
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_MESSAGE_REQUEST_PAYLOAD");
         }
     }
 
@@ -291,9 +289,7 @@ class JsonValidationPolicyTest {
                 .assertError(throwable -> throwable instanceof MyCustomException);
 
             verify(ctx).interruptMessageWith(executionFailureCaptor.capture());
-            assertThat(executionFailureCaptor.getValue().key()).isEqualTo(
-                "JSON_INVALID_MESSAGE_RESPONSE_PAYLOAD"
-            );
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_MESSAGE_RESPONSE_PAYLOAD");
         }
     }
 
