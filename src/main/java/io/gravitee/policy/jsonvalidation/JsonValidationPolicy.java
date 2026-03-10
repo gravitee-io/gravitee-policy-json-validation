@@ -69,7 +69,12 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             .request()
             .body()
             .flatMapCompletable(buffer -> validate(ctx, buffer, Source.REQUEST, false, JsonValidationPolicy::interrupt))
-            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), Source.REQUEST, JsonValidationPolicy::interrupt));
+            .onErrorResumeNext(th -> {
+                if (th instanceof IOException || th instanceof ProcessingException) {
+                    return errorHandling(ctx, th, Source.REQUEST, false, JsonValidationPolicy::interrupt);
+                }
+                return Completable.error(th);
+            });
     }
 
     @Override
@@ -80,7 +85,12 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             .flatMapCompletable(buffer ->
                 validate(ctx, buffer, Source.RESPONSE, configuration.isStraightRespondMode(), JsonValidationPolicy::interrupt)
             )
-            .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), Source.RESPONSE, JsonValidationPolicy::interrupt));
+            .onErrorResumeNext(th -> {
+                if (th instanceof IOException || th instanceof ProcessingException) {
+                    return errorHandling(ctx, th, Source.RESPONSE, configuration.isStraightRespondMode(), JsonValidationPolicy::interrupt);
+                }
+                return Completable.error(th);
+            });
     }
 
     @Override
@@ -94,10 +104,15 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                             Maybe.just(message)
                         );
                     } catch (IOException | ProcessingException e) {
-                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage(), e);
                     }
                 })
-                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_REQUEST, JsonValidationPolicy::interrupt))
+                .onErrorResumeNext(th -> {
+                    if (th instanceof JsonValidationException) {
+                        return errorHandling(ctx, th, MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt);
+                    }
+                    return Completable.error(th);
+                })
         );
     }
 
@@ -112,10 +127,15 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                             Maybe.just(message)
                         );
                     } catch (IOException | ProcessingException e) {
-                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage());
+                        throw new JsonValidationException("Error occurred during json validation " + e.getMessage(), e);
                     }
                 })
-                .onErrorResumeNext(th -> errorHandling(ctx, th.toString(), MESSAGE_RESPONSE, JsonValidationPolicy::interrupt))
+                .onErrorResumeNext(th -> {
+                    if (th instanceof JsonValidationException) {
+                        return errorHandling(ctx, th, MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt);
+                    }
+                    return Completable.error(th);
+                })
         );
     }
 
@@ -140,11 +160,16 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
         T ctx,
-        String th,
+        Throwable th,
         Source source,
+        boolean straightMode,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) {
-        return errorHandling(ctx, th, source.status, source.getFormatKey(), false, interrupt);
+        String key = (th instanceof ProcessingException || th.getCause() instanceof ProcessingException)
+            ? source.getPayloadKey()
+            : source.getFormatKey();
+        String message = th.getMessage() != null ? th.getMessage() : "Unknown error";
+        return errorHandling(ctx, message, source.status, key, straightMode, interrupt);
     }
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(

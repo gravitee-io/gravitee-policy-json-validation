@@ -132,10 +132,19 @@ public class JsonValidationPolicyV3 {
                 } else {
                     writeBufferAndEnd.run();
                 }
+            } catch (ProcessingException ex) {
+                request.metrics().setMessage(ex.toString());
+                if (!straightMode) {
+                    sendErrorResponse(errorParams.payloadKeyError(), executionContext, policyChain, errorParams.errorStatus());
+                } else {
+                    writeBufferAndEnd.run();
+                }
             } catch (Exception ex) {
                 request.metrics().setMessage(ex.toString());
                 if (!straightMode) {
                     sendErrorResponse(errorParams.formatKeyError(), executionContext, policyChain, errorParams.errorStatus());
+                } else {
+                    writeBufferAndEnd.run();
                 }
             }
         });
