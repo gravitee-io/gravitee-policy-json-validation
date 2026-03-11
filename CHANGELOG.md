@@ -1,3 +1,10 @@
+## [2.1.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.0...2.1.1) (2026-03-11)
+
+
+### Bug Fixes
+
+* improve JSON validation error handling ([67306e0](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/67306e07eac0aeef38c99569b735cecd922de200))
+
 # [2.1.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.3...2.1.0) (2025-11-13)
 
 
