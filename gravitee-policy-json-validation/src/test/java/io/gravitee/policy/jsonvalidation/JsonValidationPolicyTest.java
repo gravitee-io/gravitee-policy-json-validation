@@ -17,8 +17,8 @@ package io.gravitee.policy.jsonvalidation;
 
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessageFactory.createFailedProduceResponseWithTwoPartitions;
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessageFactory.createFetchResponseWithTwoPartitions;
+import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.TEST_HEADER_NAME;
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.createNativeErrorHandling;
-import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.testHeaderName;
 import static io.gravitee.validation.configuration.errorhandling.PublishValidationErrorStrategy.FAIL_WITH_INVALID_RECORD;
 import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandlingStrategy.ADD_RECORD_HEADER;
 import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandlingStrategy.INVALIDATE_PARTITION;
@@ -363,7 +363,7 @@ class JsonValidationPolicyTest {
                 .getValue()
                 .apply(originalMessage)
                 .test()
-                .assertValue(actualMessage -> actualMessage.recordHeaders().containsKey(testHeaderName));
+                .assertValue(actualMessage -> actualMessage.recordHeaders().containsKey(TEST_HEADER_NAME));
         }
     }
 

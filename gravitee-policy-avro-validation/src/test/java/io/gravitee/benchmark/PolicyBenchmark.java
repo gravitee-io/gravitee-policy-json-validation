@@ -303,138 +303,6 @@ public class PolicyBenchmark {
     }
 
     private byte[] buildMessage() {
-        String payloadJson = """
-            {
-              "value_schema_id": 123,
-              "records": [
-                {
-                  "key": {
-                    "string": "7b2b3f1a-0c8f-4d3f-9cbe-7f1b22a1ad9b"
-                  },
-                  "value": {
-                    "eventId": "7b2b3f1a-0c8f-4d3f-9cbe-7f1b22a1ad9b",
-                    "eventType": "ORDER_CREATED",
-                    "occurredAt": 1736851200123,
-
-                    "audit": {
-                      "createdAt": 1736851200123,
-                      "createdBy": { "string": "checkout-service" },
-                      "traceId": { "string": "0f3d3c5e-2a8a-4f5f-9c62-8d9a1b2c3d4e" },
-                      "payloadSha256": {
-                        "com.acme.avro.common.Sha256": "Ut84SSKN2tOmdKRPoSEkJ0/rzh5B5nhZdcejEKZDW3E="
-                      },
-                      "tags": {
-                        "env": "prod",
-                        "region": "eu-central-1",
-                        "tenant": "acme"
-                      }
-                    },
-
-                    "orderId": "ORD-2026-000001",
-                    "customerId": { "string": "CUST-88421" },
-
-                    "billingAddress": {
-                      "com.acme.avro.common.Address": {
-                        "line1": "ul. Prosta 1",
-                        "line2": null,
-                        "city": "Warszawa",
-                        "postalCode": "00-001",
-                        "countryCode": "PL",
-                        "geo": {
-                          "com.acme.avro.common.GeoPoint": {
-                            "lat": 52.2297,
-                            "lon": 21.0122,
-                            "accuracyMeters": { "float": 15.5 }
-                          }
-                        }
-                      }
-                    },
-
-                    "shippingAddress": {
-                      "com.acme.avro.common.Address": {
-                        "line1": "ul. Prosta 1",
-                        "line2": { "string": "m. 12" },
-                        "city": "Warszawa",
-                        "postalCode": "00-001",
-                        "countryCode": "PL",
-                        "geo": null
-                      }
-                    },
-
-                    "items": [
-                      {
-                        "sku": "SKU-123",
-                        "name": { "string": "Kawa ziarnista 1kg" },
-                        "quantity": 2,
-
-                        "unitPrice": {
-                          "amount": "vGFO",
-                          "currency": "PLN"
-                        },
-
-                        "discount": null,
-
-                        "attributes": {
-                          "roast": { "string": "medium" },
-                          "origin": { "string": "Brazil" },
-                          "giftWrap": null
-                        }
-                      },
-                      {
-                        "sku": "SKU-456",
-                        "name": null,
-                        "quantity": 1,
-
-                        "unitPrice": {
-                          "amount": "mJYc",
-                          "currency": "PLN"
-                        },
-
-                        "discount": {
-                          "com.acme.avro.common.Money": {
-                            "amount": "B88=",
-                            "currency": "PLN"
-                          }
-                        },
-
-                        "attributes": {
-                          "note": { "string": "deliver after 17:00" }
-                        }
-                      }
-                    ],
-
-                    "totals": {
-                      "subtotal": { "amount": "BfXhAA==", "currency": "PLN" },
-                      "shipping": { "amount": "AA==", "currency": "PLN" },
-                      "tax": { "amount": "mJYc", "currency": "PLN" },
-                      "grandTotal": { "amount": "BfXhAA==", "currency": "PLN" }
-                    },
-
-                    "payment": {
-                      "com.acme.avro.events.PaymentInfo": {
-                        "provider": "STRIPE",
-                        "authorized": true,
-                        "authorizationId": { "string": "auth_3QxYzAbCdEf" },
-                        "amount": {
-                          "com.acme.avro.common.Money": { "amount": "BfXhAA==", "currency": "PLN" }
-                        },
-                        "capturedAt": null
-                      }
-                    },
-
-                    "metadata": {
-                      "source": { "string": "checkout" },
-                      "retryCount": { "long": 0 },
-                      "riskScore": { "double": 0.12 },
-                      "isTest": { "boolean": false },
-                      "comment": null
-                    }
-                  }
-                }
-              ]
-            }
-            """;
-
         Schema parsedSchema = new Schema.Parser().parse(SCHEMA);
         GenericRecord orderEvent = buildOrderEvent(parsedSchema);
         return toBytes("order-events", orderEvent);
@@ -612,7 +480,7 @@ public class PolicyBenchmark {
         return money;
     }
 
-    public static byte[] toBytes(String topic, GenericRecord record) {
+    public static byte[] toBytes(String topic, GenericRecord genericRecord) {
         KafkaAvroSerializer serializer = new KafkaAvroSerializer();
 
         Map<String, Object> cfg = new HashMap<>();
@@ -621,7 +489,7 @@ public class PolicyBenchmark {
         serializer.configure(cfg, false);
 
         try {
-            byte[] serialize = serializer.serialize(topic, record);
+            byte[] serialize = serializer.serialize(topic, genericRecord);
             System.out.println(toJavaByteArray(serialize));
             return serialize;
         } finally {

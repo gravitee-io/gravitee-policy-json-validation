@@ -20,8 +20,8 @@ import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorH
 import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandlingStrategy.INVALIDATE_PARTITION;
 import static io.gravitee.validation.kafka.handler.KafkaValidationResultHandlerFactory.createValidationResultHandler;
 import static io.gravitee.validation.kafka.handler.support.TestKafkaApiMessageFactory.*;
+import static io.gravitee.validation.kafka.handler.support.TestNativeErrorHandlingConfigurationFactory.TEST_HEADER_NAME;
 import static io.gravitee.validation.kafka.handler.support.TestNativeErrorHandlingConfigurationFactory.createNativeErrorHandling;
-import static io.gravitee.validation.kafka.handler.support.TestNativeErrorHandlingConfigurationFactory.testHeaderName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -211,7 +211,7 @@ class KafkaValidationResultHandlerTest {
         @Test
         void testOnError() {
             handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
-            assertThat(message.recordHeaders()).containsKey(testHeaderName);
+            assertThat(message.recordHeaders()).containsKey(TEST_HEADER_NAME);
             verify(ctx, never()).interruptWith(any(AbstractResponse.class));
         }
     }
