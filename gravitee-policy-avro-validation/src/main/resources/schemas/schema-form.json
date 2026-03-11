@@ -1,0 +1,224 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "definitions": {
+        "nativeErrorHandling": {
+            "type": "object",
+            "title": "Error handling strategy",
+            "properties": {
+                "onSubscribe": {
+                    "$ref": "#/definitions/subscribeErrorHandling"
+                },
+                "onPublish": {
+                    "$ref": "#/definitions/publishErrorHandling"
+                }
+            },
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.apiType": ["NATIVE"]
+                    }
+                }
+            }
+        },
+        "subscribeErrorHandling": {
+            "type": "object",
+            "title": "SubscribeErrorHandling",
+            "description": "Error handling for subscribe phase",
+            "oneOf": [
+                {
+                    "title": "Invalidate partition",
+                    "properties": {
+                        "strategy": {
+                            "const": "INVALIDATE_PARTITION"
+                        }
+                    },
+                    "required": ["strategy"]
+                },
+                {
+                    "title": "Add record header",
+                    "properties": {
+                        "strategy": {
+                            "const": "ADD_RECORD_HEADER"
+                        },
+                        "headerName": {
+                            "title": "Record header name",
+                            "description": "Record header name to append validation error",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["strategy", "headerName"]
+                }
+            ],
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.flowPhase": ["SUBSCRIBE"]
+                    }
+                }
+            }
+        },
+        "publishErrorHandling": {
+            "title": "PublishErrorHandling",
+            "type": "object",
+            "description": "Error handling for publish phase",
+            "oneOf": [
+                {
+                    "title": "Fail with invalid record",
+                    "properties": {
+                        "strategy": {
+                            "const": "FAIL_WITH_INVALID_RECORD"
+                        }
+                    },
+                    "required": ["strategy"]
+                }
+            ],
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.flowPhase": ["PUBLISH"]
+                    }
+                }
+            }
+        },
+        "schemaSource": {
+            "title": "Schema source",
+            "type": "object",
+            "properties": {
+                "sourceType": {
+                    "title": "Source type",
+                    "enum": ["SCHEMA_REGISTRY_RESOURCE"],
+                    "default": "SCHEMA_REGISTRY_RESOURCE",
+                    "disabled": "true",
+                    "gioConfig": {
+                        "enumLabelMap": {
+                            "SCHEMA_REGISTRY_RESOURCE": "Schema registry"
+                        }
+                    }
+                },
+                "resourceName": {
+                    "title": "Resource name",
+                    "description": "Name of the schema registry resource",
+                    "type": "string"
+                }
+            },
+            "required": ["sourceType", "resourceName"]
+        },
+        "serializationForm": {
+            "title": "SerializationForm",
+            "type": "object",
+            "description": "Serialization form",
+            "oneOf": [
+                {
+                    "title": "Confluent",
+                    "properties": {
+                        "serializationForm": {
+                            "const": "CONFLUENT"
+                        },
+                        "schemaIdSource": {
+                            "title": "Schema identifier source",
+                            "oneOf": [
+                                {
+                                    "title": "Native",
+                                    "properties": {
+                                        "schemaIdSource": {
+                                            "const": "NATIVE"
+                                        }
+                                    }
+                                },
+                                {
+                                    "title": "SpEL",
+                                    "properties": {
+                                        "schemaIdSource": {
+                                            "const": "EVAL"
+                                        },
+                                        "schemaIdEvalString": {
+                                            "title": "Schema name mapping",
+                                            "description": "EL that evaluates to schema name",
+                                            "type": "string"
+                                        },
+                                        "schemaVersionEvalString": {
+                                            "title": "Schema version mapping",
+                                            "description": "EL that evaluates to schema version",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": ["schemaIdSource", "schemaIdEvalString", "schemaVersionEvalString"]
+                                }
+                            ]
+                        }
+                    },
+                    "required": ["serializationForm", "schemaIdSource"]
+                },
+                {
+                    "title": "Simple",
+                    "properties": {
+                        "serializationForm": {
+                            "const": "SIMPLE"
+                        },
+                        "schemaIdSource": {
+                            "const": "EVAL"
+                        },
+                        "schemaIdEvalString": {
+                            "title": "Schema name mapping",
+                            "description": "EL that evaluates to schema name",
+                            "type": "string"
+                        },
+                        "schemaVersionEvalString": {
+                            "title": "Schema version mapping",
+                            "description": "EL that evaluates to schema version",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["serializationForm", "schemaIdSource", "schemaIdEvalString", "schemaVersionEvalString"]
+                }
+            ]
+        },
+        "schemaIdSource": {
+            "title": "SchemaIdSource",
+            "type": "object",
+            "description": "Schema ID source",
+            "oneOf": [
+                {
+                    "title": "Native",
+                    "properties": {
+                        "schemaIdSource": {
+                            "const": "NATIVE"
+                        }
+                    },
+                    "required": ["schemaIdSource"]
+                },
+                {
+                    "title": "Custom",
+                    "properties": {
+                        "schemaIdSource": {
+                            "const": "EVAL"
+                        }
+                    },
+                    "required": ["schemaIdSource"]
+                }
+            ]
+        }
+    },
+    "properties": {
+        "schemaSource": {
+            "$ref": "#/definitions/schemaSource",
+            "x-schema-form": {
+                "hidden": true
+            }
+        },
+        "serializationForm": {
+            "$ref": "#/definitions/serializationForm",
+            "x-schema-form": {
+                "hidden": true
+            }
+        },
+        "nativeErrorHandling": {
+            "$ref": "#/definitions/nativeErrorHandling",
+            "x-schema-form": {
+                "hidden": true
+            }
+        }
+    }
+}
