@@ -1,0 +1,4 @@
+rows:
+    - data:
+          plugin: "1.x"
+          apim: "4.6 and greater"

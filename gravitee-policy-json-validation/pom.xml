@@ -21,52 +21,24 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.gravitee</groupId>
-        <artifactId>gravitee-parent</artifactId>
-        <version>22.6.0</version>
+        <groupId>io.gravitee.policy</groupId>
+        <artifactId>gravitee-policy-validation-parent</artifactId>
+        <version>2.1.0</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>io.gravitee.policy</groupId>
-    <artifactId>gravitee-policy-validation-parent</artifactId>
-    <version>2.1.0</version>
-    <packaging>pom</packaging>
+    <artifactId>gravitee-policy-json-validation</artifactId>
+    <packaging>jar</packaging>
 
-    <name>Gravitee.io APIM - Policy - Validation Reactor</name>
-    <description>Reactor project for validation policy modules</description>
-
-    <properties>
-        <gravitee-apim.version>4.6.24</gravitee-apim.version>
-        <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
-        <gravitee-resource-schema-registry-provider-api.version>1.0.1</gravitee-resource-schema-registry-provider-api.version>
-        <gravitee-reactor-message.version>5.0.2</gravitee-reactor-message.version>
-        <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
-        <json-schema-validator.version>2.2.14</json-schema-validator.version>
-
-        <maven-plugin-assembly.version>3.8.0</maven-plugin-assembly.version>
-        <maven-plugin-properties.version>1.3.0</maven-plugin-properties.version>
-
-        <publish-folder-path>graviteeio-apim/plugins/policies</publish-folder-path>
-    </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.gravitee.apim</groupId>
-                <artifactId>gravitee-apim-bom</artifactId>
-                <version>${gravitee-apim.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-            <dependency>
-                <groupId>io.gravitee.policy</groupId>
-                <artifactId>commons-validation</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+    <name>Gravitee.io APIM - Policy - JSON Validation</name>
+    <description>Validate JSON payloads</description>
 
     <dependencies>
-        <!-- Provided scope -->
+        <dependency>
+            <groupId>io.gravitee.policy</groupId>
+            <artifactId>commons-validation</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.gravitee.gateway</groupId>
             <artifactId>gravitee-gateway-api</artifactId>
@@ -76,19 +48,6 @@
         <dependency>
             <groupId>io.gravitee.policy</groupId>
             <artifactId>gravitee-policy-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.gravitee.resource</groupId>
-            <artifactId>gravitee-resource-schema-registry-provider-api</artifactId>
-            <version>${gravitee-resource-schema-registry-provider-api.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.gravitee.resource</groupId>
-            <artifactId>gravitee-resource-api</artifactId>
-            <version>${gravitee-resource-api.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -108,8 +67,8 @@
                     <artifactId>guava</artifactId>
                 </exclusion>
                 <exclusion>
-                    <artifactId>rhino</artifactId>
                     <groupId>org.mozilla</groupId>
+                    <artifactId>rhino</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -126,19 +85,11 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Swagger -->
-        <dependency>
             <groupId>io.swagger.parser.v3</groupId>
             <artifactId>swagger-parser</artifactId>
             <scope>provided</scope>
         </dependency>
 
-        <!-- Test scope -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -210,9 +161,54 @@
         </dependency>
     </dependencies>
 
-    <modules>
-        <module>commons-validation</module>
-        <module>gravitee-policy-json-validation</module>
-        <module>gravitee-policy-avro-validation</module>
-    </modules>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>${maven-plugin-properties.version}</version>
+                <executions>
+                    <execution>
+                        <id>load-plugin-properties</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>${project.basedir}/src/main/resources/plugin.properties</file>
+                            </files>
+                            <quiet>false</quiet>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>${maven-plugin-assembly.version}</version>
+                <configuration>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <descriptors>
+                        <descriptor>src/assembly/policy-assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-policy-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

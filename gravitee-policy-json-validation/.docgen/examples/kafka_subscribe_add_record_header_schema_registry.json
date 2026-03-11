@@ -1,0 +1,13 @@
+{
+    "schemaSource": {
+        "sourceType": "SCHEMA_REGISTRY_RESOURCE",
+        "resourceName": "externalSchemaRegistry",
+        "schemaMapping": "{#message.topic}"
+    },
+    "nativeErrorHandling": {
+        "onSubscribe": {
+            "strategy": "ADD_RECORD_HEADER",
+            "headerName": "ValidationError"
+        }
+    }
+}

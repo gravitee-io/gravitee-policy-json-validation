@@ -1,0 +1,12 @@
+{
+    "schemaSource": {
+        "sourceType": "SCHEMA_REGISTRY_RESOURCE",
+        "resourceName": "externalSchemaRegistry",
+        "schemaMapping": "{#message.topic}"
+    },
+    "nativeErrorHandling": {
+        "onPublish": {
+            "strategy": "FAIL_WITH_INVALID_RECORD"
+        }
+    }
+}
