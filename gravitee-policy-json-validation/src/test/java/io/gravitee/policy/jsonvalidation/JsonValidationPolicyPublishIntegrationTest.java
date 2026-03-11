@@ -51,8 +51,7 @@ import org.junit.jupiter.api.TestFactory;
 
 @DeployApi({ "/apis/v4-validation.json" })
 @GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
-public class JsonValidationPolicyPublishIntegrationTest
-    extends AbstractPolicyTest<JsonValidationPolicy, JsonValidationPolicyConfiguration> {
+class JsonValidationPolicyPublishIntegrationTest extends AbstractPolicyTest<JsonValidationPolicy, JsonValidationPolicyConfiguration> {
 
     static Stream<String> apis() {
         return Stream.of("/a-v4-validation");
@@ -78,7 +77,7 @@ public class JsonValidationPolicyPublishIntegrationTest
     }
 
     @TestFactory
-    public Stream<DynamicTest> publishPhase(HttpClient client) {
+    Stream<DynamicTest> publishPhase(HttpClient client) {
         return apis()
             .flatMap(requestUri -> cases().map(testCase -> testCase.with(requestUri)))
             .map(tuple ->
@@ -88,7 +87,7 @@ public class JsonValidationPolicyPublishIntegrationTest
             );
     }
 
-    public void publishPhase(JsonObject body, String requestUri, HttpClient client, boolean expectFail) {
+    void publishPhase(JsonObject body, String requestUri, HttpClient client, boolean expectFail) {
         postMessage(client, requestUri, body, Map.of("X-Test-Header", "header-value")).test().awaitDone(30, TimeUnit.SECONDS);
         if (!expectFail) {
             messageStorage

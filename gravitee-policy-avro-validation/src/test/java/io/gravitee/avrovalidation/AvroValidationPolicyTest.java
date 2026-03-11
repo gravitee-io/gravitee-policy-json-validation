@@ -19,7 +19,7 @@ import static org.mockito.Mockito.*;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
 import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
-import io.gravitee.avrovalidation.schema.SchemaResolver;
+import io.gravitee.avrovalidation.schema.AvroSchemaResolver;
 import io.gravitee.avrovalidation.schema.SchemaResolverFactory;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageRequest;
@@ -54,7 +54,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * @author GraviteeSource Team
  */
 @ExtendWith(MockitoExtension.class)
-public class AvroValidationPolicyTest {
+class AvroValidationPolicyTest {
 
     private static final String TEST_HEADER_NAME = "TEST_HEADER_NAME";
     private static String schema = """
@@ -112,7 +112,7 @@ public class AvroValidationPolicyTest {
     private KafkaMessageExecutionContext ctx;
 
     @Mock
-    private SchemaResolver schemaResolver;
+    private AvroSchemaResolver schemaResolver;
 
     @Mock
     private KafkaMessageRequest request;
@@ -124,7 +124,7 @@ public class AvroValidationPolicyTest {
     private ArgumentCaptor<Function<KafkaMessage, Maybe<KafkaMessage>>> messageCaptor;
 
     @Test
-    public void validateSchemaRequestSuccessTest() throws InterruptedException {
+    void validateSchemaRequestSuccessTest() {
         var stubMessage = new KafkaMessageStub(avroMessage);
         policy.onMessageRequest(ctx).test().awaitDone(1, TimeUnit.SECONDS);
         verify(request).onMessage(messageCaptor.capture());
@@ -132,7 +132,7 @@ public class AvroValidationPolicyTest {
     }
 
     @Test
-    public void validateSchemaRequestFailTest() throws InterruptedException {
+    void validateSchemaRequestFailTest() {
         var stubMessage = new KafkaMessageStub(wrongAvroMessage);
         policy.onMessageRequest(ctx).test().awaitDone(1, TimeUnit.SECONDS);
         verify(request).onMessage(messageCaptor.capture());
@@ -140,7 +140,7 @@ public class AvroValidationPolicyTest {
     }
 
     @Test
-    public void validateSchemaResponseSuccessTest() throws InterruptedException {
+    void validateSchemaResponseSuccessTest() {
         var stubMessage = new KafkaMessageStub(avroMessage);
         policy.onMessageResponse(ctx).test().awaitDone(1, TimeUnit.SECONDS);
         verify(response).onMessage(messageCaptor.capture());
@@ -148,7 +148,7 @@ public class AvroValidationPolicyTest {
     }
 
     @Test
-    public void validateSchemaResponseFailTest() throws InterruptedException {
+    void validateSchemaResponseFailTest() {
         var stubMessage = new KafkaMessageStub(wrongAvroMessage);
         policy.onMessageResponse(ctx).test().awaitDone(1, TimeUnit.SECONDS);
         verify(response).onMessage(messageCaptor.capture());
@@ -162,7 +162,7 @@ public class AvroValidationPolicyTest {
     }
 
     @BeforeEach
-    public void setup() throws IOException {
+    void setup() {
         when(schemaResolver.resolveSchema(any(), any())).thenReturn(Single.just(new SchemaImpl(schema)));
 
         var schemaSource = new SchemaSource();

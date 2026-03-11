@@ -34,7 +34,7 @@ import java.nio.ByteBuffer;
 /**
  * @author GraviteeSource Team
  */
-public class ResourceBasedSchemaResolver implements SchemaResolver {
+public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
 
     private final SchemaRegistryBasedResolver<KafkaMessageExecutionContext, KafkaMessage> delegate;
 

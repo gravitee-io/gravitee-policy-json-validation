@@ -24,7 +24,9 @@ import io.gravitee.validation.schema.SchemaSourceType;
  */
 public class SchemaResolverFactory {
 
-    public static SchemaResolver createSchemaResolver(AvroValidationPolicyConfiguration configuration) {
+    private SchemaResolverFactory() {}
+
+    public static AvroSchemaResolver createSchemaResolver(AvroValidationPolicyConfiguration configuration) {
         SchemaSource schemaSource = configuration.getSchemaSource();
         SchemaSourceType schemaSourceType = schemaSource.getSourceType();
         return switch (schemaSourceType) {

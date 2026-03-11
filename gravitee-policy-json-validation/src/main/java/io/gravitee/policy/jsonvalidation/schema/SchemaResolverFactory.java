@@ -21,6 +21,8 @@ import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSourceType;
 
 public class SchemaResolverFactory {
 
+    private SchemaResolverFactory() {}
+
     public static SchemaResolver createSchemaResolver(JsonValidationPolicyConfiguration configuration) {
         SchemaSource schemaSource = configuration.getSchemaSource();
 

@@ -15,21 +15,23 @@
  */
 package io.gravitee.policy.jsonvalidation.handler.kafka;
 
-import io.gravitee.policy.jsonvalidation.configuration.errorhandling.PublishErrorHandling;
-import io.gravitee.policy.jsonvalidation.configuration.errorhandling.SubscribeErrorHandling;
+import io.gravitee.validation.configuration.errorhandling.PublishErrorHandling;
+import io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandling;
 
 public class KafkaValidationResultHandlerFactory {
 
+    private KafkaValidationResultHandlerFactory() {}
+
     public static KafkaValidationResultHandler createValidationResultHandler(PublishErrorHandling configuration) {
-        return switch (configuration.strategy()) {
+        return switch (configuration.getStrategy()) {
             case FAIL_WITH_INVALID_RECORD -> new FailProduceRequestWithInvalidRecord();
         };
     }
 
     public static KafkaValidationResultHandler createValidationResultHandler(SubscribeErrorHandling configuration) {
-        return switch (configuration.strategy()) {
+        return switch (configuration.getStrategy()) {
             case INVALIDATE_PARTITION -> new InvalidatePartitionAtFetchResponse();
-            case ADD_RECORD_HEADER -> new AddHeaderToInvalidRecord(configuration.headerName());
+            case ADD_RECORD_HEADER -> new AddHeaderToInvalidRecord(configuration.getHeaderName());
         };
     }
 }

@@ -23,7 +23,7 @@ import io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandling
 
 public class TestNativeErrorHandlingConfigurationFactory {
 
-    public static String TEST_HEADER_NAME = "Test-Validation-Error-Header";
+    public static final String testHeaderName = "Test-Validation-Error-Header";
 
     public static NativeErrorHandling createNativeErrorHandling(PublishValidationErrorStrategy strategy) {
         NativeErrorHandling nativeErrorHandling = new NativeErrorHandling();
@@ -37,7 +37,7 @@ public class TestNativeErrorHandlingConfigurationFactory {
         NativeErrorHandling nativeErrorHandling = new NativeErrorHandling();
         SubscribeErrorHandling subscribeErrorHandling = new SubscribeErrorHandling();
         subscribeErrorHandling.setStrategy(strategy);
-        subscribeErrorHandling.setHeaderName(TEST_HEADER_NAME);
+        subscribeErrorHandling.setHeaderName(testHeaderName);
         nativeErrorHandling.setOnSubscribe(subscribeErrorHandling);
         return nativeErrorHandling;
     }

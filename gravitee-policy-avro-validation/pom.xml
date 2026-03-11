@@ -50,6 +50,14 @@
             <groupId>io.gravitee.policy</groupId>
             <artifactId>commons-validation</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.gravitee.policy</groupId>
+            <artifactId>commons-validation</artifactId>
+            <type>test-jar</type>
+            <classifier>tests</classifier>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>io.gravitee.gateway</groupId>

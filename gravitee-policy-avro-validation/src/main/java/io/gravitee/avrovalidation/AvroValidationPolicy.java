@@ -19,7 +19,7 @@ import static io.gravitee.avrovalidation.schema.SchemaResolverFactory.createSche
 import static io.gravitee.validation.kafka.handler.KafkaValidationResultHandlerFactory.createValidationResultHandler;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
-import io.gravitee.avrovalidation.schema.SchemaResolver;
+import io.gravitee.avrovalidation.schema.AvroSchemaResolver;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaConnectionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
@@ -46,10 +46,10 @@ import org.apache.avro.io.DecoderFactory;
 @Slf4j
 public class AvroValidationPolicy implements KafkaPolicy {
 
-    private final SchemaResolver schemaResolver;
+    private final AvroSchemaResolver schemaResolver;
     private final AvroValidationPolicyConfiguration configuration;
 
-    public AvroValidationPolicy(AvroValidationPolicyConfiguration configuration) throws IOException {
+    public AvroValidationPolicy(AvroValidationPolicyConfiguration configuration) {
         this.configuration = configuration;
         this.schemaResolver = createSchemaResolver(configuration);
     }

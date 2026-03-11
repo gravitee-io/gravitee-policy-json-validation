@@ -20,6 +20,8 @@ import io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandling
 
 public class KafkaValidationResultHandlerFactory {
 
+    private KafkaValidationResultHandlerFactory() {}
+
     public static KafkaValidationResultHandler createValidationResultHandler(PublishErrorHandling configuration) {
         return switch (configuration.getStrategy()) {
             case FAIL_WITH_INVALID_RECORD -> new FailProduceRequestWithInvalidRecord();

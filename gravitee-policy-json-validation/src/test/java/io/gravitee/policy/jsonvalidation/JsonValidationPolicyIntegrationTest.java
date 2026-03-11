@@ -49,7 +49,7 @@ import org.junit.jupiter.api.TestFactory;
 
 @DeployApi({ "/apis/v4-proxy.json" })
 @GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
-public class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<JsonValidationPolicy, JsonValidationPolicyConfiguration> {
+class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<JsonValidationPolicy, JsonValidationPolicyConfiguration> {
 
     static Stream<String> apis() {
         return Stream.of("/a-v4-api");
@@ -64,7 +64,7 @@ public class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<Json
     }
 
     @TestFactory
-    public Stream<DynamicTest> requestPhase(HttpClient client) {
+    Stream<DynamicTest> requestPhase(HttpClient client) {
         return apis()
             .flatMap(requestUri -> cases().map(testCase -> testCase.with(requestUri)))
             .map(tuple ->
@@ -75,7 +75,7 @@ public class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<Json
     }
 
     @TestFactory
-    public Stream<DynamicTest> responsePhase(HttpClient client) {
+    Stream<DynamicTest> responsePhase(HttpClient client) {
         return apis()
             .flatMap(requestUri -> cases().map(testCase -> testCase.with(requestUri)))
             .map(tuple ->
@@ -85,7 +85,7 @@ public class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<Json
             );
     }
 
-    public void requestPhase(String body, String requestUri, HttpClient client, boolean expectFail) throws Exception {
+    void requestPhase(String body, String requestUri, HttpClient client, boolean expectFail) throws Exception {
         if (!expectFail) {
             wiremock.stubFor(post("/team").willReturn(ok()));
         }
@@ -108,7 +108,7 @@ public class JsonValidationPolicyIntegrationTest extends AbstractPolicyTest<Json
         }
     }
 
-    public void responsePhase(String body, String requestUri, HttpClient client, boolean expectFail) throws Exception {
+    void responsePhase(String body, String requestUri, HttpClient client, boolean expectFail) throws Exception {
         wiremock.stubFor(get("/team").willReturn(ok(body)));
 
         client

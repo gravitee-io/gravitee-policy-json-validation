@@ -37,6 +37,10 @@ public class KafkaMessageStub implements KafkaMessage {
         this.content = Buffer.buffer(content);
     }
 
+    public KafkaMessageStub(String content) {
+        this.content = Buffer.buffer(content);
+    }
+
     @Override
     public Map<String, Buffer> recordHeaders() {
         return recordHeaders;

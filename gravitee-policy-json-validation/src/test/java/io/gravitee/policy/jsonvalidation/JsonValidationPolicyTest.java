@@ -15,13 +15,13 @@
  */
 package io.gravitee.policy.jsonvalidation;
 
-import static io.gravitee.policy.jsonvalidation.configuration.errorhandling.PublishValidationErrorStrategy.FAIL_WITH_INVALID_RECORD;
-import static io.gravitee.policy.jsonvalidation.configuration.errorhandling.SubscribeErrorHandlingStrategy.ADD_RECORD_HEADER;
-import static io.gravitee.policy.jsonvalidation.configuration.errorhandling.SubscribeErrorHandlingStrategy.INVALIDATE_PARTITION;
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessageFactory.createFailedProduceResponseWithTwoPartitions;
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestKafkaApiMessageFactory.createFetchResponseWithTwoPartitions;
-import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.TEST_HEADER_NAME;
 import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.createNativeErrorHandling;
+import static io.gravitee.policy.jsonvalidation.kafka.factory.TestNativeErrorHandlingConfigurationFactory.testHeaderName;
+import static io.gravitee.validation.configuration.errorhandling.PublishValidationErrorStrategy.FAIL_WITH_INVALID_RECORD;
+import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandlingStrategy.ADD_RECORD_HEADER;
+import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandlingStrategy.INVALIDATE_PARTITION;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -34,8 +34,8 @@ import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSource;
 import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSourceType;
-import io.gravitee.policy.jsonvalidation.kafka.stub.KafkaMessageStub;
 import io.gravitee.reporter.api.v4.metric.Metrics;
+import io.gravitee.validation.kafka.handler.support.KafkaMessageStub;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
@@ -363,7 +363,7 @@ class JsonValidationPolicyTest {
                 .getValue()
                 .apply(originalMessage)
                 .test()
-                .assertValue(actualMessage -> actualMessage.recordHeaders().containsKey(TEST_HEADER_NAME));
+                .assertValue(actualMessage -> actualMessage.recordHeaders().containsKey(testHeaderName));
         }
     }
 

@@ -20,8 +20,8 @@ import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorH
 import static io.gravitee.validation.configuration.errorhandling.SubscribeErrorHandlingStrategy.INVALIDATE_PARTITION;
 import static io.gravitee.validation.kafka.handler.KafkaValidationResultHandlerFactory.createValidationResultHandler;
 import static io.gravitee.validation.kafka.handler.support.TestKafkaApiMessageFactory.*;
-import static io.gravitee.validation.kafka.handler.support.TestNativeErrorHandlingConfigurationFactory.TEST_HEADER_NAME;
 import static io.gravitee.validation.kafka.handler.support.TestNativeErrorHandlingConfigurationFactory.createNativeErrorHandling;
+import static io.gravitee.validation.kafka.handler.support.TestNativeErrorHandlingConfigurationFactory.testHeaderName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -50,7 +50,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class KafkaValidationResultHandlerTest {
+class KafkaValidationResultHandlerTest {
 
     @ExtendWith(MockitoExtension.class)
     @Nested
@@ -81,12 +81,12 @@ public class KafkaValidationResultHandlerTest {
         }
 
         @Test
-        public void testOnSuccess() {
+        void testOnSuccess() {
             handler.onSuccess(msgCtx, message).test().assertComplete();
         }
 
         @Test
-        public void testOnError() {
+        void testOnError() {
             ProduceResponse failedProduceResponse = createFailedProduceResponseWithTwoPartitions(Errors.INVALID_RECORD);
             lenient().when(produceRequest.getErrorResponse(anyInt(), any(InvalidRecordException.class))).thenReturn(failedProduceResponse);
 
@@ -131,12 +131,12 @@ public class KafkaValidationResultHandlerTest {
         }
 
         @Test
-        public void testOnSuccess() {
+        void testOnSuccess() {
             handler.onSuccess(msgCtx, message).test().assertComplete();
         }
 
         @Test
-        public void testOnError() {
+        void testOnError() {
             when(ctx.interruptWith(any(FetchResponse.class))).thenReturn(Completable.complete());
 
             handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
@@ -204,14 +204,14 @@ public class KafkaValidationResultHandlerTest {
         }
 
         @Test
-        public void testOnSuccess() {
+        void testOnSuccess() {
             handler.onSuccess(msgCtx, message).test().assertComplete();
         }
 
         @Test
-        public void testOnError() {
+        void testOnError() {
             handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
-            assertThat(message.recordHeaders()).containsKey(TEST_HEADER_NAME);
+            assertThat(message.recordHeaders()).containsKey(testHeaderName);
             verify(ctx, never()).interruptWith(any(AbstractResponse.class));
         }
     }

@@ -276,7 +276,7 @@ public class PolicyBenchmark {
     }
 
     @Benchmark
-    public void isValidBenchmarkCachePrototype() throws IOException {
+    public void isValidBenchmarkCachePrototype() {
         try {
             // 1) Confluent wire-format: magic(1) + schemaId(4) + payload
             if (message.length < 6) {
@@ -303,7 +303,7 @@ public class PolicyBenchmark {
     }
 
     private byte[] buildMessage() {
-        String message = """
+        String payloadJson = """
             {
               "value_schema_id": 123,
               "records": [
@@ -435,17 +435,17 @@ public class PolicyBenchmark {
             }
             """;
 
-        Schema schema = new Schema.Parser().parse(SCHEMA);
-        GenericRecord record = buildOrderEvent(schema);
-        return toBytes("order-events", SCHEMA, record);
+        Schema parsedSchema = new Schema.Parser().parse(SCHEMA);
+        GenericRecord orderEvent = buildOrderEvent(parsedSchema);
+        return toBytes("order-events", orderEvent);
     }
 
     private static GenericRecord buildOrderEvent(Schema orderEventSchema) {
-        GenericRecord rec = new GenericData.Record(orderEventSchema);
+        GenericRecord orderEvent = new GenericData.Record(orderEventSchema);
 
-        rec.put("eventId", "7b2b3f1a-0c8f-4d3f-9cbe-7f1b22a1ad9b");
-        rec.put("eventType", new GenericData.EnumSymbol(orderEventSchema.getField("eventType").schema(), "ORDER_CREATED"));
-        rec.put("occurredAt", 1736851200123L);
+        orderEvent.put("eventId", "7b2b3f1a-0c8f-4d3f-9cbe-7f1b22a1ad9b");
+        orderEvent.put("eventType", new GenericData.EnumSymbol(orderEventSchema.getField("eventType").schema(), "ORDER_CREATED"));
+        orderEvent.put("occurredAt", 1736851200123L);
 
         // ---- audit (com.acme.avro.common.Audit) ----
         Schema auditSchema = orderEventSchema.getField("audit").schema();
@@ -473,10 +473,10 @@ public class PolicyBenchmark {
         tags.put("region", "eu-central-1");
         audit.put("tags", tags);
 
-        rec.put("audit", audit);
+        orderEvent.put("audit", audit);
 
-        rec.put("orderId", "ORD-2026-000001");
-        rec.put("customerId", "CUST-88421");
+        orderEvent.put("orderId", "ORD-2026-000001");
+        orderEvent.put("customerId", "CUST-88421");
 
         // billingAddress: union ["null", Address]
         Schema billingUnion = orderEventSchema.getField("billingAddress").schema();
@@ -509,7 +509,7 @@ public class PolicyBenchmark {
         geo.put("accuracyMeters", 15.5f);
 
         billing.put("geo", geo);
-        rec.put("billingAddress", billing);
+        orderEvent.put("billingAddress", billing);
 
         GenericRecord shipping = new GenericData.Record(addressSchema);
         shipping.put("line1", "ul. Prosta 1");
@@ -518,7 +518,7 @@ public class PolicyBenchmark {
         shipping.put("postalCode", "00-001");
         shipping.put("countryCode", "PL");
         shipping.put("geo", null);
-        rec.put("shippingAddress", shipping);
+        orderEvent.put("shippingAddress", shipping);
 
         // ---- items: array of OrderItem ----
         Schema itemsArraySchema = orderEventSchema.getField("items").schema();
@@ -561,7 +561,7 @@ public class PolicyBenchmark {
 
         item2.put("attributes", Map.of("note", "deliver after 17:00"));
 
-        rec.put("items", java.util.List.of(item1, item2));
+        orderEvent.put("items", java.util.List.of(item1, item2));
 
         // ---- totals: OrderTotals ----
         Schema totalsSchema = orderEventSchema.getField("totals").schema();
@@ -572,7 +572,7 @@ public class PolicyBenchmark {
         totals.put("tax", moneyOf(moneySchema, new byte[] { 0x02 }, "PLN"));
         totals.put("grandTotal", moneyOf(moneySchema, new byte[] { 0x03 }, "PLN"));
 
-        rec.put("totals", totals);
+        orderEvent.put("totals", totals);
 
         // ---- payment: union ["null", PaymentInfo] ----
         Schema paymentUnion = orderEventSchema.getField("payment").schema();
@@ -590,7 +590,7 @@ public class PolicyBenchmark {
         payment.put("amount", moneyOf(moneySchema, new byte[] { 0x03 }, "PLN"));
         payment.put("capturedAt", null);
 
-        rec.put("payment", payment);
+        orderEvent.put("payment", payment);
 
         // metadata: map of union ["null","string","long","double","boolean"]
         Map<String, Object> metadata = new HashMap<>();
@@ -600,19 +600,19 @@ public class PolicyBenchmark {
         metadata.put("isTest", false);
         metadata.put("comment", null);
 
-        rec.put("metadata", metadata);
+        orderEvent.put("metadata", metadata);
 
-        return rec;
+        return orderEvent;
     }
 
     private static GenericRecord moneyOf(Schema moneySchema, byte[] amountBytes, String currency) {
-        GenericRecord m = new GenericData.Record(moneySchema);
-        m.put("amount", ByteBuffer.wrap(amountBytes));
-        m.put("currency", currency);
-        return m;
+        GenericRecord money = new GenericData.Record(moneySchema);
+        money.put("amount", ByteBuffer.wrap(amountBytes));
+        money.put("currency", currency);
+        return money;
     }
 
-    public static byte[] toBytes(String topic, String schemaJson, GenericRecord record) {
+    public static byte[] toBytes(String topic, GenericRecord record) {
         KafkaAvroSerializer serializer = new KafkaAvroSerializer();
 
         Map<String, Object> cfg = new HashMap<>();

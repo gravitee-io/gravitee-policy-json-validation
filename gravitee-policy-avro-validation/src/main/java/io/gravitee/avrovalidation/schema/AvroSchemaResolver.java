@@ -13,6 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.policy.jsonvalidation.configuration.errorhandling;
+package io.gravitee.avrovalidation.schema;
 
-public record PublishErrorHandling(PublishValidationErrorStrategy strategy) {}
+import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
+import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
+import io.gravitee.resource.schema_registry.api.Schema;
+
+public interface AvroSchemaResolver
+    extends io.gravitee.validation.schema.SchemaResolver<KafkaMessageExecutionContext, KafkaMessage, Schema> {}

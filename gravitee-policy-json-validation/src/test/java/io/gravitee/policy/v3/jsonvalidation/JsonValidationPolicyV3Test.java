@@ -45,7 +45,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class JsonValidationPolicyV3Test {
+class JsonValidationPolicyV3Test {
 
     @Mock
     private Request mockRequest;
@@ -82,7 +82,7 @@ public class JsonValidationPolicyV3Test {
     private JsonValidationPolicyV3 policy;
 
     @BeforeEach
-    public void beforeAll() {
+    void beforeAll() {
         factory = ServiceLoaderHelper.loadFactory(BufferFactory.class);
         metrics = Metrics.on(System.currentTimeMillis()).build();
 
@@ -93,11 +93,11 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldAcceptValidPayload() throws IOException {
+    void shouldAcceptValidPayload() throws IOException {
         when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
-        JsonValidationPolicyV3 policy = new JsonValidationPolicyV3(configuration);
+        JsonValidationPolicyV3 requestPolicy = new JsonValidationPolicyV3(configuration);
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-        var readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        var readWriteStream = requestPolicy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
 
         final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
 
@@ -108,7 +108,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldValidateRejectInvalidPayload() {
+    void shouldValidateRejectInvalidPayload() {
         when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
@@ -125,8 +125,9 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldValidateUncheckedRejectInvalidPayload() {
+    void shouldValidateUncheckedRejectInvalidPayload() {
         when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
+        when(configuration.isValidateUnchecked()).thenReturn(true);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
         var readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
@@ -142,7 +143,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldMalformedPayloadBeRejected() {
+    void shouldMalformedPayloadBeRejected() {
         when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
 
         Buffer buffer = factory.buffer("{\"name\":");
@@ -159,7 +160,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldMalformedJsonSchemaBeRejected() {
+    void shouldMalformedJsonSchemaBeRejected() {
         when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
         when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
 
@@ -177,11 +178,11 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldAcceptValidResponsePayload() throws IOException {
+    void shouldAcceptValidResponsePayload() throws IOException {
         when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
-        JsonValidationPolicyV3 policy = new JsonValidationPolicyV3(configuration);
+        JsonValidationPolicyV3 responsePolicy = new JsonValidationPolicyV3(configuration);
         Buffer buffer = factory.buffer("{\"name\":\"foo\"}");
-        var readWriteStream = policy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+        var readWriteStream = responsePolicy.onResponseContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
         final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
 
         readWriteStream.write(buffer);
@@ -191,7 +192,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldValidateResponseInvalidPayload() {
+    void shouldValidateResponseInvalidPayload() {
         when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
 
         Buffer buffer = factory.buffer("{\"name\":1}");
@@ -207,7 +208,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldValidateResponseInvalidSchema() {
+    void shouldValidateResponseInvalidSchema() {
         when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
         when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
 
@@ -225,7 +226,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldValidateResponseInvalidPayloadStraightRespondMode() {
+    void shouldValidateResponseInvalidPayloadStraightRespondMode() {
         when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
         when(configuration.isStraightRespondMode()).thenReturn(true);
 
@@ -243,7 +244,7 @@ public class JsonValidationPolicyV3Test {
     }
 
     @Test
-    public void shouldValidateResponseInvalidSchemaStraightRespondMode() {
+    void shouldValidateResponseInvalidSchemaStraightRespondMode() {
         when(configuration.getScope()).thenReturn(PolicyScope.RESPONSE_CONTENT);
         when(configuration.getSchema()).thenReturn("\"msg\":\"error\"}");
         when(configuration.isStraightRespondMode()).thenReturn(true);

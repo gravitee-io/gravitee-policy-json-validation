@@ -36,7 +36,6 @@ import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.gateway.reactive.api.policy.kafka.KafkaPolicy;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
-import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeErrorHandling;
 import io.gravitee.policy.jsonvalidation.handler.ValidationResultHandler;
 import io.gravitee.policy.jsonvalidation.handler.kafka.KafkaValidationResultHandler;
 import io.gravitee.policy.jsonvalidation.schema.SchemaResolver;
@@ -44,6 +43,7 @@ import io.gravitee.policy.jsonvalidation.schema.ValidatableSchemaResolver;
 import io.gravitee.policy.v3.jsonvalidation.JsonValidationPolicyV3;
 import io.gravitee.resource.schema_registry.api.Schema;
 import io.gravitee.validation.ValidationException;
+import io.gravitee.validation.configuration.errorhandling.NativeErrorHandling;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
@@ -181,13 +181,13 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     @Override
     public Completable onMessageRequest(KafkaMessageExecutionContext ctx) {
         return Completable.defer(() -> {
-            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::onPublish).isEmpty()) {
+            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::getOnPublish).isEmpty()) {
                 return Completable.error(
                     new IllegalArgumentException("JSON-validation policy for Kafka is not configured for onPublish phase.")
                 );
             }
 
-            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().onPublish());
+            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().getOnPublish());
             return ctx.request().onMessage(message -> validate(ctx, message, handler).andThen(Maybe.just(message)));
         });
     }
@@ -195,13 +195,13 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     @Override
     public Completable onMessageResponse(KafkaMessageExecutionContext ctx) {
         return Completable.defer(() -> {
-            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::onSubscribe).isEmpty()) {
+            if (Optional.ofNullable(configuration.getNativeErrorHandling()).map(NativeErrorHandling::getOnSubscribe).isEmpty()) {
                 return Completable.error(
                     new IllegalArgumentException("JSON-validation policy for Kafka is not configured for onSubscribe phase.")
                 );
             }
 
-            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().onSubscribe());
+            KafkaValidationResultHandler handler = createValidationResultHandler(configuration.getNativeErrorHandling().getOnSubscribe());
             return ctx.response().onMessage(message -> validate(ctx, message, handler).andThen(Maybe.just(message)));
         });
     }
@@ -254,8 +254,8 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     }
 
     private void validateSchemaResolver() throws IOException {
-        if (schemaResolver instanceof ValidatableSchemaResolver) {
-            ((ValidatableSchemaResolver) schemaResolver).validate();
+        if (schemaResolver instanceof ValidatableSchemaResolver validatableSchemaResolver) {
+            validatableSchemaResolver.validate();
         }
     }
 

@@ -164,6 +164,9 @@ public class JsonValidationPolicyV3 {
         }
     }
 
+    /**
+     * TODO: remove legacy schema support once all configurations are migrated to schemaSource.
+     */
     @SuppressWarnings("deprecation")
     private JsonNode resolveLegacySchema(Request request, Response response, ExecutionContext executionContext) throws IOException {
         return JsonLoader.fromString(configuration.getSchema());
