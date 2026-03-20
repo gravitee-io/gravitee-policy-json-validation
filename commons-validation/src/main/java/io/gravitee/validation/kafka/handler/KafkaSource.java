@@ -1,0 +1,37 @@
+/*
+ * Copyright © 2015 The Gravitee team (http://gravitee.io)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.gravitee.validation.kafka.handler;
+
+import java.util.Objects;
+import org.apache.kafka.common.message.FetchResponseData;
+import org.apache.kafka.common.message.ProduceResponseData;
+
+record KafkaSource(String topic, int partition) {
+    public boolean isSameTopicAndPartitionAs(
+        ProduceResponseData.TopicProduceResponse topicResponse,
+        ProduceResponseData.PartitionProduceResponse partitionResponse
+    ) {
+        return Objects.equals(topicResponse.name(), topic) && partitionResponse.index() == partition;
+    }
+
+    public boolean isSameTopicAs(FetchResponseData.FetchableTopicResponse topicResponse) {
+        return Objects.equals(topicResponse.topic(), topic);
+    }
+
+    public boolean isSamePartitionAs(FetchResponseData.PartitionData partitionData) {
+        return partitionData.partitionIndex() == partition;
+    }
+}

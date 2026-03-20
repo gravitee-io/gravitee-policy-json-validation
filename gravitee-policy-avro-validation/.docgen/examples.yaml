@@ -1,0 +1,21 @@
+genExamples: []
+
+rawExamples:
+    - title: Kafka subscribe with INVALIDATE_PARTITION strategy
+      templateRef: v4-api-crd-kafka-native
+      language: json
+      properties:
+          phase: subscribe
+      file: .docgen/examples/kafka_subscribe_invalidate_partition_schema_registry.json
+    - title: Kafka subscribe with ADD_RECORD_HEADER strategy
+      templateRef: v4-api-crd-kafka-native
+      language: json
+      properties:
+          phase: subscribe
+      file: .docgen/examples/kafka_subscribe_add_record_header_schema_registry.json
+    - title: Kafka publish with FAIL_WITH_INVALID_RECORD strategy
+      templateRef: v4-api-crd-kafka-native
+      language: json
+      properties:
+          phase: publish
+      file: .docgen/examples/kafka_publish_fail_with_invalid_record_schema_registry.json
