@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.1...2.1.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **deps:** Excluding jackson-core deps to fix security vulnerabilities ([67e75dd](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/67e75dd12d15e8d97d736778ae34c3271a6298b0))
+
 ## [2.1.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.0...2.1.1) (2026-03-11)
 
 
