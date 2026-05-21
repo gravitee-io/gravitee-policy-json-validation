@@ -424,6 +424,13 @@ spec:
 
 ## Changelog
 
+### [2.2.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.2...2.2.0-alpha.3) (2026-05-21)
+
+
+##### Bug Fixes
+
+* bump APIM BOM to 4.10.14 for rhino 1.7.15.1 (CVE-2025-66453) ([#71](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/71)) ([69242e1](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/69242e1f6358c58235e263f6f81f61007e281438))
+
 ### [2.2.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.1...2.2.0-alpha.2) (2026-03-10)
 
 
