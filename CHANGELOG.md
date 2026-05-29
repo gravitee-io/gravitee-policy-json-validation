@@ -1,3 +1,10 @@
+## [2.1.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.2...2.1.3) (2026-05-29)
+
+
+### Bug Fixes
+
+* **deps:** change rhino scope ([#72](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/72)) ([95662f0](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/95662f0cc0fee1eddb2e88027b9710293c6014db))
+
 ## [2.1.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.1...2.1.2) (2026-05-21)
 
 
