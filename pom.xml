@@ -40,6 +40,7 @@
         <gravitee-reactor-message.version>5.0.2</gravitee-reactor-message.version>
         <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
+        <rhino.version>1.7.15.1</rhino.version>
 
         <maven-plugin-properties.version>1.3.0</maven-plugin-properties.version>
 
@@ -111,6 +112,7 @@
         <dependency>
             <groupId>org.mozilla</groupId>
             <artifactId>rhino</artifactId>
+            <version>${rhino.version}</version>
         </dependency>
 
         <dependency>
