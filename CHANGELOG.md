@@ -1,3 +1,10 @@
+## [2.1.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.3...2.1.4) (2026-05-29)
+
+
+### Bug Fixes
+
+* force version of rhino ([aeaac0e](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/aeaac0e63b4b0eff03d53d748824916029256939))
+
 ## [2.1.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.2...2.1.3) (2026-05-29)
 
 
