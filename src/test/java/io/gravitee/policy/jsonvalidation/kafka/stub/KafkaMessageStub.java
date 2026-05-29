@@ -63,21 +63,6 @@ public class KafkaMessageStub implements KafkaMessage {
     }
 
     @Override
-    public KafkaMessage key(Buffer key) {
-        return this;
-    }
-
-    @Override
-    public KafkaMessage key(String key) {
-        return this;
-    }
-
-    @Override
-    public int sizeInBytes() {
-        return content == null ? 0 : content.length();
-    }
-
-    @Override
     public long offset() {
         return 0;
     }
