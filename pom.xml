@@ -39,7 +39,6 @@
         <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
 
-        <maven-plugin-assembly.version>3.8.0</maven-plugin-assembly.version>
         <maven-plugin-properties.version>1.3.0</maven-plugin-properties.version>
 
         <publish-folder-path>graviteeio-apim/plugins/policies</publish-folder-path>
@@ -239,7 +238,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>${maven-plugin-assembly.version}</version>
                 <configuration>
                     <appendAssemblyId>false</appendAssemblyId>
                     <descriptors>
