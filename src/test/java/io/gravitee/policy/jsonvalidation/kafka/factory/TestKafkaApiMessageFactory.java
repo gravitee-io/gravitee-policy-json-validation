@@ -15,10 +15,10 @@
  */
 package io.gravitee.policy.jsonvalidation.kafka.factory;
 
-import org.apache.kafka.common.compress.Compression;
 import org.apache.kafka.common.message.FetchResponseData;
 import org.apache.kafka.common.message.ProduceResponseData;
 import org.apache.kafka.common.protocol.Errors;
+import org.apache.kafka.common.record.CompressionType;
 import org.apache.kafka.common.record.MemoryRecords;
 import org.apache.kafka.common.record.RecordBatch;
 import org.apache.kafka.common.record.SimpleRecord;
@@ -68,7 +68,7 @@ public class TestKafkaApiMessageFactory {
     private static FetchResponseData.PartitionData createPartitionDataWithRecord(int partitionIndex) {
         MemoryRecords records = MemoryRecords.withRecords(
             RecordBatch.CURRENT_MAGIC_VALUE,
-            Compression.NONE,
+            CompressionType.NONE,
             new SimpleRecord("key".getBytes(), "value".getBytes())
         );
 

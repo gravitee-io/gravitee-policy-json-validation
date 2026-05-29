@@ -34,10 +34,10 @@
     </parent>
 
     <properties>
-        <gravitee-apim.version>4.10.14</gravitee-apim.version>
+        <gravitee-apim.version>4.6.24</gravitee-apim.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-resource-schema-registry-provider-api.version>1.0.1</gravitee-resource-schema-registry-provider-api.version>
-        <gravitee-reactor-message.version>9.0.1</gravitee-reactor-message.version>
+        <gravitee-reactor-message.version>5.0.2</gravitee-reactor-message.version>
         <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
 
@@ -154,6 +154,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.gravitee.apim.gateway</groupId>
+            <artifactId>gravitee-apim-gateway-buffer</artifactId>
+            <version>${gravitee-apim.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.gravitee.apim.gateway</groupId>
             <artifactId>gravitee-apim-gateway-tests-sdk</artifactId>
