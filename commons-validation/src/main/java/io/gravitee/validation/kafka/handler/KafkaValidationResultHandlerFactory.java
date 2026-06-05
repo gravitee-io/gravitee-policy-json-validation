@@ -32,7 +32,7 @@ public class KafkaValidationResultHandlerFactory {
     public static KafkaValidationResultHandler createValidationResultHandler(SubscribeErrorHandling configuration) {
         return switch (configuration.getStrategy()) {
             case INVALIDATE_PARTITION -> new InvalidatePartitionAtFetchResponse();
-            case ADD_RECORD_HEADER -> new AddHeaderToInvalidRecord(configuration.getHeaderName());
+            case ADD_RECORD_HEADER -> new AddHeaderToInvalidRecord(configuration.getHeaderName(), configuration.getHeaderValue());
         };
     }
 }

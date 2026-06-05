@@ -44,7 +44,12 @@
                         },
                         "headerName": {
                             "title": "Record header name",
-                            "description": "Record header name to append validation error",
+                            "description": "Record header name used to flag invalid records",
+                            "type": "string"
+                        },
+                        "headerValue": {
+                            "title": "Record header value",
+                            "description": "Fixed, non-sensitive value written to the header. The raw validation error is not exposed to consumers to avoid leaking payload data. Defaults to a generic marker.",
                             "type": "string"
                         }
                     },

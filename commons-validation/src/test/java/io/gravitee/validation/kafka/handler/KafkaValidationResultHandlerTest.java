@@ -210,8 +210,10 @@ class KafkaValidationResultHandlerTest {
 
         @Test
         void testOnError() {
-            handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
+            handler.onError(msgCtx, message, "boom: <payload fragment>").test().assertComplete();
             assertThat(message.recordHeaders()).containsKey(TEST_HEADER_NAME);
+            // The raw validation error (which may contain payload fragments) must NOT be written to the header.
+            assertThat(message.recordHeaders().get(TEST_HEADER_NAME).toString()).isEqualTo(AddHeaderToInvalidRecord.DEFAULT_HEADER_VALUE);
             verify(ctx, never()).interruptWith(any(AbstractResponse.class));
         }
     }

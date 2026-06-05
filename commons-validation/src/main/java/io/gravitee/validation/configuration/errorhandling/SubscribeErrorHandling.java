@@ -24,4 +24,11 @@ public class SubscribeErrorHandling {
 
     private SubscribeErrorHandlingStrategy strategy;
     private String headerName;
+
+    /**
+     * Optional fixed, non-sensitive value written to the validation header (ADD_RECORD_HEADER strategy).
+     * Defaults to a generic marker; the raw validation error is never exposed to consumers to avoid leaking
+     * payload fragments.
+     */
+    private String headerValue;
 }
