@@ -41,4 +41,16 @@ public class AvroValidationPolicyConfiguration implements PolicyConfiguration {
     private String schemaVersionEvalString;
 
     private NativeErrorHandling nativeErrorHandling;
+
+    /**
+     * When {@code true} (default), a record with {@code null} content (e.g. a compaction tombstone) is skipped
+     * and forwarded without validation. When {@code false}, a {@code null} record is treated as invalid.
+     */
+    private boolean allowNulls = true;
+
+    /**
+     * When {@code true}, a record with zero-length content is skipped and forwarded without validation.
+     * Defaults to {@code false} (an empty payload is treated as invalid).
+     */
+    private boolean allowEmpty = false;
 }

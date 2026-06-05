@@ -72,6 +72,15 @@
                         }
                     },
                     "required": ["strategy"]
+                },
+                {
+                    "title": "Log only (audit)",
+                    "properties": {
+                        "strategy": {
+                            "const": "LOG"
+                        }
+                    },
+                    "required": ["strategy"]
                 }
             ],
             "gioConfig": {
@@ -124,6 +133,15 @@
                                     "properties": {
                                         "schemaIdSource": {
                                             "const": "NATIVE"
+                                        }
+                                    }
+                                },
+                                {
+                                    "title": "Native (subject-gated)",
+                                    "description": "Validate the producer's schema id resolves to the schema registered under the topic's subject (<topic>-value) before accepting it.",
+                                    "properties": {
+                                        "schemaIdSource": {
+                                            "const": "NATIVE_GATED"
                                         }
                                     }
                                 },

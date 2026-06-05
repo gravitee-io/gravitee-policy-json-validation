@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.validation.configuration.errorhandling;
+package io.gravitee.validation.schema;
 
-public enum PublishValidationErrorStrategy {
-    /**
-     * Reject the whole produce request with a Kafka {@code INVALID_RECORD} error; the broker never receives it.
-     */
-    FAIL_WITH_INVALID_RECORD,
-    /**
-     * Audit mode: log/meter the violation and forward the record unchanged. Useful to roll out enforcement gradually.
-     */
-    LOG,
+import io.gravitee.validation.ValidationException;
+
+/**
+ * Raised when a producer-supplied schema does not match the schema registered under the topic's subject
+ * (governance gate). The subject is the authority; a non-matching schema is rejected.
+ */
+public class SchemaContractViolationException extends ValidationException {
+
+    public SchemaContractViolationException(String message) {
+        super(message);
+    }
 }

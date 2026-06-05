@@ -16,6 +16,19 @@
 package io.gravitee.validation.schema;
 
 public enum SchemaIdSource {
+    /**
+     * Resolve the schema by the schema id the producer embedded in the record (Confluent wire format).
+     * The schema the producer points at is trusted as the contract.
+     */
     NATIVE,
+    /**
+     * Resolve the schema by an Expression Language mapping (e.g. the subject derived from {@code #message.topic}).
+     */
     EVAL,
+    /**
+     * Governance mode: read the producer's embedded id <em>and</em> verify it resolves to a schema registered
+     * under the topic's subject before accepting it. The subject is the authority; the producer cannot point at
+     * an arbitrary registered schema.
+     */
+    NATIVE_GATED,
 }

@@ -99,9 +99,9 @@ public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
             .flatMap(id -> templateEngine.eval(schemaVersionEvalString, String.class).map(version -> new SchemaReference(id, version)));
     }
 
-    private static Maybe<String> resolveNativeSchemaId(KafkaMessage message) {
+    static Maybe<String> resolveNativeSchemaId(KafkaMessage message) {
         return Maybe.fromCallable(() -> {
-            byte[] bytes = message.content().getBytes();
+            byte[] bytes = message.content() == null ? null : message.content().getBytes();
 
             if (bytes == null || bytes.length < 5) {
                 throw new IllegalArgumentException("Message too short for Confluent framing");

@@ -16,6 +16,7 @@
 package io.gravitee.avrovalidation.schema;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
+import io.gravitee.validation.schema.SchemaIdSource;
 import io.gravitee.validation.schema.SchemaSource;
 import io.gravitee.validation.schema.SchemaSourceType;
 
@@ -30,7 +31,9 @@ public class SchemaResolverFactory {
         SchemaSource schemaSource = configuration.getSchemaSource();
         SchemaSourceType schemaSourceType = schemaSource.getSourceType();
         return switch (schemaSourceType) {
-            case SCHEMA_REGISTRY_RESOURCE -> new ResourceBasedSchemaResolver(configuration);
+            case SCHEMA_REGISTRY_RESOURCE -> SchemaIdSource.NATIVE_GATED.equals(configuration.getSchemaIdSource())
+                ? new SubjectGatedSchemaResolver(configuration)
+                : new ResourceBasedSchemaResolver(configuration);
         };
     }
 }

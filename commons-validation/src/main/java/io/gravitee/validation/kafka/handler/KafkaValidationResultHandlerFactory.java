@@ -25,6 +25,7 @@ public class KafkaValidationResultHandlerFactory {
     public static KafkaValidationResultHandler createValidationResultHandler(PublishErrorHandling configuration) {
         return switch (configuration.getStrategy()) {
             case FAIL_WITH_INVALID_RECORD -> new FailProduceRequestWithInvalidRecord();
+            case LOG -> new LogInvalidRecord();
         };
     }
 

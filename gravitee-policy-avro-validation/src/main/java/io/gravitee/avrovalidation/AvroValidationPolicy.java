@@ -19,15 +19,14 @@ import static io.gravitee.avrovalidation.schema.SchemaResolverFactory.createSche
 import static io.gravitee.validation.kafka.handler.KafkaValidationResultHandlerFactory.createValidationResultHandler;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
+import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.avrovalidation.schema.AvroSchemaResolver;
 import io.gravitee.gateway.api.buffer.Buffer;
-import io.gravitee.gateway.reactive.api.context.kafka.KafkaConnectionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.gateway.reactive.api.policy.kafka.KafkaPolicy;
 import io.gravitee.resource.schema_registry.api.Schema;
 import io.gravitee.validation.configuration.errorhandling.NativeErrorHandling;
-import io.gravitee.validation.handler.ValidationResultHandler;
 import io.gravitee.validation.kafka.handler.KafkaValidationResultHandler;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
@@ -88,37 +87,62 @@ public class AvroValidationPolicy implements KafkaPolicy {
     }
 
     private Completable validate(KafkaMessageExecutionContext ctx, KafkaMessage message, KafkaValidationResultHandler handler) {
+        final Buffer content = message.content();
+
+        // Handle tombstones / empty payloads before schema resolution (avoids NPE during schema-id extraction).
+        if (content == null) {
+            return configuration.isAllowNulls()
+                ? handler.onSuccess(ctx, message)
+                : handler.onError(ctx, message, "Null record content is not allowed");
+        }
+        if (content.length() == 0) {
+            return configuration.isAllowEmpty()
+                ? handler.onSuccess(ctx, message)
+                : handler.onError(ctx, message, "Empty record content is not allowed");
+        }
+
         return schemaResolver
             .resolveSchema(ctx, message)
-            .flatMapCompletable(schema -> {
-                try {
-                    var result = isValidAvroBinary(message.content(), schema);
-                    if (!result.isSuccess()) {
-                        log.debug("Invalid message body: {}", result.getErrorMessage());
-                    }
-                    return result.isSuccess() ? handler.onSuccess(ctx, message) : handler.onError(ctx, message, result.getErrorMessage());
-                } catch (Exception e) {
-                    log.error("Error occurred during message validation: {}", e.getMessage(), e);
-                    return errorHandling(ctx, message, e.toString(), handler);
+            .map(schema -> isValidAvroBinary(content, schema, configuration.getSerializationForm()))
+            // Route schema-resolution failures (no envelope, registry unavailable, schema not found) through the
+            // same configured handler as content failures, instead of erroring the message stream. The handler's
+            // own outcome (e.g. an interruption on FAIL) is produced downstream and propagates normally.
+            .onErrorReturn(ValidationResult::new)
+            .flatMapCompletable(result -> {
+                if (!result.isSuccess()) {
+                    log.debug("Invalid message body: {}", result.getErrorMessage());
                 }
+                return result.isSuccess() ? handler.onSuccess(ctx, message) : handler.onError(ctx, message, result.getErrorMessage());
             });
     }
 
-    public static ValidationResult isValidAvroBinary(Buffer messageContent, io.gravitee.resource.schema_registry.api.Schema writerSchema) {
+    /**
+     * Backward-compatible overload assuming the Confluent serialization form.
+     */
+    public static ValidationResult isValidAvroBinary(Buffer messageContent, Schema writerSchema) {
+        return isValidAvroBinary(messageContent, writerSchema, SerializationForm.CONFLUENT);
+    }
+
+    public static ValidationResult isValidAvroBinary(Buffer messageContent, Schema writerSchema, SerializationForm serializationForm) {
         try {
             org.apache.avro.Schema parsedSchema = parseSchema(writerSchema);
 
             byte[] bytes = messageContent.getBytes();
 
-            // 1) Confluent wire-format: magic(1) + schemaId(4) + payload
-            if (bytes.length < 5) {
-                return new ValidationResult(new IOException("Message too short for Confluent Avro"));
+            int payloadOffset;
+            if (serializationForm == SerializationForm.SIMPLE) {
+                // Bare Avro binary — no Confluent envelope.
+                payloadOffset = 0;
+            } else {
+                // Confluent wire-format: magic(1) + schemaId(4) + payload
+                if (bytes.length < 5) {
+                    return new ValidationResult(new IOException("Message too short for Confluent Avro"));
+                }
+                if (bytes[0] != 0x00) {
+                    return new ValidationResult(new IOException("Not a Confluent Avro message (magic byte != 0)"));
+                }
+                payloadOffset = 5;
             }
-            if (bytes[0] != 0x00) {
-                return new ValidationResult(new IOException("Not a Confluent Avro message (magic byte != 0)"));
-            }
-
-            int payloadOffset = 5;
             int payloadLength = bytes.length - payloadOffset;
 
             GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(parsedSchema);
@@ -141,14 +165,5 @@ public class AvroValidationPolicy implements KafkaPolicy {
             throw new IllegalArgumentException("Avro schema is empty");
         }
         return new org.apache.avro.Schema.Parser().parse(writerSchema.getContent());
-    }
-
-    private <T extends KafkaMessageExecutionContext> Completable errorHandling(
-        T ctx,
-        KafkaMessage kafkaMessage,
-        String throwableMessage,
-        ValidationResultHandler<T, KafkaMessage> handler
-    ) {
-        return handler.onError(ctx, kafkaMessage, throwableMessage);
     }
 }

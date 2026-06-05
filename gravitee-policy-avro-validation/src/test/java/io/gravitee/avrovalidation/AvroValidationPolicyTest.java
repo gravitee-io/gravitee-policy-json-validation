@@ -21,6 +21,7 @@ import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguratio
 import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.avrovalidation.schema.AvroSchemaResolver;
 import io.gravitee.avrovalidation.schema.SchemaResolverFactory;
+import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageRequest;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageResponse;
@@ -155,6 +156,23 @@ class AvroValidationPolicyTest {
         messageCaptor.getValue().apply(stubMessage).test().assertError(IllegalArgumentException.class);
     }
 
+    @Test
+    void nullContentTombstoneIsSkipped() {
+        var stubMessage = new KafkaMessageStub(avroMessage);
+        stubMessage.content((Buffer) null);
+        policy.onMessageRequest(ctx).test().awaitDone(1, TimeUnit.SECONDS);
+        verify(request).onMessage(messageCaptor.capture());
+        messageCaptor.getValue().apply(stubMessage).test().assertNoErrors();
+    }
+
+    @Test
+    void emptyContentIsRejected() {
+        var stubMessage = new KafkaMessageStub(new byte[0]);
+        policy.onMessageRequest(ctx).test().awaitDone(1, TimeUnit.SECONDS);
+        verify(request).onMessage(messageCaptor.capture());
+        messageCaptor.getValue().apply(stubMessage).test().assertError(IllegalArgumentException.class);
+    }
+
     @AfterEach
     void tearDown() {
         if (handlerFactoryMock != null) handlerFactoryMock.close();
@@ -163,7 +181,7 @@ class AvroValidationPolicyTest {
 
     @BeforeEach
     void setup() {
-        when(schemaResolver.resolveSchema(any(), any())).thenReturn(Single.just(new SchemaImpl(schema)));
+        lenient().when(schemaResolver.resolveSchema(any(), any())).thenReturn(Single.just(new SchemaImpl(schema)));
 
         var schemaSource = new SchemaSource();
         schemaSource.setSourceType(SchemaSourceType.SCHEMA_REGISTRY_RESOURCE);
