@@ -1,9 +1,13 @@
 {
     "schemaSource": {
         "sourceType": "SCHEMA_REGISTRY_RESOURCE",
-        "resourceName": "externalSchemaRegistry",
-        "schemaMapping": "{#message.topic}"
+        "resourceName": "externalSchemaRegistry"
     },
+    "schemaIdSource": "EXPRESSION",
+    "wireFormat": "NONE",
+    "schemaIdEvalString": "{#message.topic}-value",
+    "schemaVersionEvalString": "latest",
+    "validationDepth": "CONTENT",
     "nativeErrorHandling": {
         "onSubscribe": {
             "strategy": "INVALIDATE_PARTITION"
