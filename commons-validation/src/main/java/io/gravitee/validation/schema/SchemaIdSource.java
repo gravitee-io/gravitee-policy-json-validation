@@ -20,7 +20,7 @@ package io.gravitee.validation.schema;
  */
 public enum SchemaIdSource {
     /**
-     * Use the schema id carried in the record (in the wire-format envelope or a record header), enforced against the
+     * Use the schema id carried in the record's wire-format envelope, enforced against the
      * schema registered under the topic's subject before accepting it. The subject is the authority — the producer
      * cannot validate against an arbitrary registered schema; the payload is then decoded with the producer's
      * (validated) writer schema.

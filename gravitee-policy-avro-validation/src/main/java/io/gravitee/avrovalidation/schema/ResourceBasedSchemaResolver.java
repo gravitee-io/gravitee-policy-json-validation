@@ -48,7 +48,7 @@ public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
             configuration.getSchemaSource().getResourceName(),
             configuration.getSchemaIdEvalString(),
             configuration.getSchemaVersionEvalString(),
-            WireFormatExtractorFactory.create(configuration.getWireFormat(), configuration.getSchemaIdHeader())
+            WireFormatExtractorFactory.create(configuration.getWireFormat())
         );
     }
 

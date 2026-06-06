@@ -45,11 +45,6 @@ public class AvroValidationPolicyConfiguration implements PolicyConfiguration {
     private WireFormat wireFormat = WireFormat.CONFLUENT_4B;
 
     /**
-     * Record header carrying the schema id, used when {@code wireFormat = HEADER}.
-     */
-    private String schemaIdHeader;
-
-    /**
      * How deeply to validate. {@code CONTENT} (default) decodes the payload; {@code SCHEMA_ONLY} only verifies the
      * embedded id resolves to the topic subject (cheaper, no deserialization). {@code SCHEMA_ONLY} requires FROM_RECORD.
      */

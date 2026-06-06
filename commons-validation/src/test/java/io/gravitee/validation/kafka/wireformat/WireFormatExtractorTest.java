@@ -16,63 +16,32 @@
 package io.gravitee.validation.kafka.wireformat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.validation.kafka.handler.support.KafkaMessageStub;
-import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 
 class WireFormatExtractorTest {
 
-    private static byte[] longBytes(long value) {
-        return ByteBuffer.allocate(8).putLong(value).array();
-    }
-
     @Test
     void confluent_4b_reads_id_and_offset() {
         var message = new KafkaMessageStub(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x1B, 0x0C, 0x4D });
-        var ref = WireFormatExtractorFactory.create(WireFormat.CONFLUENT_4B, null).extract(message).blockingGet();
+        var ref = WireFormatExtractorFactory.create(WireFormat.CONFLUENT_4B).extract(message).blockingGet();
         assertEquals("27", ref.schemaId());
         assertEquals(5, ref.payloadOffset());
     }
 
     @Test
-    void apicurio_8b_reads_id_and_offset() {
-        byte[] id = longBytes(27);
-        byte[] bytes = new byte[1 + 8 + 2];
-        bytes[0] = 0x00;
-        System.arraycopy(id, 0, bytes, 1, 8);
-        bytes[9] = 0x0C;
-        bytes[10] = 0x4D;
-        var ref = WireFormatExtractorFactory.create(WireFormat.APICURIO_8B, null).extract(new KafkaMessageStub(bytes)).blockingGet();
-        assertEquals("27", ref.schemaId());
-        assertEquals(9, ref.payloadOffset());
-    }
-
-    @Test
-    void header_reads_id_from_record_header() {
+    void none_has_no_id_and_zero_offset() {
         var message = new KafkaMessageStub(new byte[] { 0x0C, 0x4D });
-        message.putRecordHeader("schema-id", Buffer.buffer(longBytes(27)));
-        var ref = WireFormatExtractorFactory.create(WireFormat.HEADER, "schema-id").extract(message).blockingGet();
-        assertEquals("27", ref.schemaId());
+        var ref = WireFormatExtractorFactory.create(WireFormat.NONE).extract(message).blockingGet();
+        assertNull(ref.schemaId());
         assertEquals(0, ref.payloadOffset());
     }
 
     @Test
     void confluent_rejects_message_without_magic_byte() {
         var message = new KafkaMessageStub(new byte[] { 0x0C, 0x4D, 0x61, 0x62, 0x63 });
-        WireFormatExtractorFactory.create(WireFormat.CONFLUENT_4B, null)
-            .extract(message)
-            .test()
-            .assertError(IllegalArgumentException.class);
-    }
-
-    @Test
-    void header_rejects_when_header_absent() {
-        var message = new KafkaMessageStub(new byte[] { 0x0C, 0x4D });
-        WireFormatExtractorFactory.create(WireFormat.HEADER, "schema-id")
-            .extract(message)
-            .test()
-            .assertError(IllegalArgumentException.class);
+        WireFormatExtractorFactory.create(WireFormat.CONFLUENT_4B).extract(message).test().assertError(IllegalArgumentException.class);
     }
 }

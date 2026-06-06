@@ -16,15 +16,14 @@
 package io.gravitee.validation.kafka.wireformat;
 
 /**
- * How the schema id is framed in a Kafka record (for the {@code FROM_RECORD} schema source).
+ * How the schema id / Avro payload is framed in a Kafka record.
+ *
+ * <p>Additional framings (e.g. Apicurio's 8-byte global id or a header-carried id) can be added as new values once a
+ * matching schema registry resource exists to resolve their ids.
  */
 public enum WireFormat {
     /** Confluent wire format: 1 magic byte {@code 0x00} + 4-byte big-endian schema id, then the Avro body. */
     CONFLUENT_4B,
-    /** Apicurio legacy wire format: 1 magic byte {@code 0x00} + 8-byte big-endian global id, then the Avro body. */
-    APICURIO_8B,
-    /** Schema id carried in a Kafka record header (e.g. Apicurio header strategy); the body is the bare Avro payload. */
-    HEADER,
     /** No envelope: the record body is bare Avro and carries no schema id (payload offset 0). Use with EXPRESSION. */
     NONE,
 }

@@ -150,21 +150,14 @@
             "title": "Wire format",
             "description": "How the schema id / Avro payload is framed in the record. Determines where the Avro body starts (envelope to skip), and — for FROM_RECORD — where the id is read. NONE = bare Avro (no envelope).",
             "type": "string",
-            "enum": ["CONFLUENT_4B", "APICURIO_8B", "HEADER", "NONE"],
+            "enum": ["CONFLUENT_4B", "NONE"],
             "default": "CONFLUENT_4B",
             "gioConfig": {
                 "enumLabelMap": {
                     "CONFLUENT_4B": "Confluent (magic + 4-byte id)",
-                    "APICURIO_8B": "Apicurio legacy (magic + 8-byte id)",
-                    "HEADER": "Record header",
                     "NONE": "None (bare Avro)"
                 }
             }
-        },
-        "schemaIdHeader": {
-            "title": "Schema id header",
-            "description": "Record header carrying the schema id (used when wire format is Record header).",
-            "type": "string"
         },
         "schemaIdEvalString": {
             "title": "Schema subject mapping",

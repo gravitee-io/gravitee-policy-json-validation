@@ -54,14 +54,11 @@ public class SubjectGatedSchemaResolver implements AvroSchemaResolver {
     private final WireFormatExtractor wireFormatExtractor;
 
     public SubjectGatedSchemaResolver(AvroValidationPolicyConfiguration configuration) {
-        this(
-            configuration.getSchemaSource().getResourceName(),
-            WireFormatExtractorFactory.create(configuration.getWireFormat(), configuration.getSchemaIdHeader())
-        );
+        this(configuration.getSchemaSource().getResourceName(), WireFormatExtractorFactory.create(configuration.getWireFormat()));
     }
 
     public SubjectGatedSchemaResolver(String resourceName) {
-        this(resourceName, WireFormatExtractorFactory.create(WireFormat.CONFLUENT_4B, null));
+        this(resourceName, WireFormatExtractorFactory.create(WireFormat.CONFLUENT_4B));
     }
 
     public SubjectGatedSchemaResolver(String resourceName, WireFormatExtractor wireFormatExtractor) {

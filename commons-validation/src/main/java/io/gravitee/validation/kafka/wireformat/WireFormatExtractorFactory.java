@@ -22,12 +22,10 @@ public final class WireFormatExtractorFactory {
 
     private WireFormatExtractorFactory() {}
 
-    public static WireFormatExtractor create(WireFormat wireFormat, String headerName) {
+    public static WireFormatExtractor create(WireFormat wireFormat) {
         WireFormat effective = wireFormat == null ? WireFormat.CONFLUENT_4B : wireFormat;
         return switch (effective) {
             case CONFLUENT_4B -> new ConfluentWireFormatExtractor();
-            case APICURIO_8B -> new ApicurioLegacyWireFormatExtractor();
-            case HEADER -> new HeaderWireFormatExtractor(headerName);
             case NONE -> new NoneWireFormatExtractor();
         };
     }

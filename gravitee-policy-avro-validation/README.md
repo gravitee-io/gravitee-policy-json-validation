@@ -28,8 +28,7 @@ It supports schema registry, getting schema ID from confluent native mechanism, 
 |-------------------------|--------------------------------|---------------------------------------------------------------------------------------------------------------|------------------------------|-----------------|
 | schemaSource            | X                              | Defines the schema source (schema registry resource) used to resolve the validation schema.                   | Schema Source object         |                 |
 | schemaIdSource          | X                              | How the schema to validate against is located: `FROM_RECORD` or `EXPRESSION`.                                  | enum                         | FROM_RECORD     |
-| wireFormat              | X                              | How the schema id / Avro payload is framed in the record: `CONFLUENT_4B`, `APICURIO_8B`, `HEADER`, `NONE`.     | enum                         | CONFLUENT_4B    |
-| schemaIdHeader          | X (for `HEADER` wire format)   | Record header carrying the schema id.                                                                          | string                       |                 |
+| wireFormat              | X                              | How the schema id / Avro payload is framed in the record: `CONFLUENT_4B` or `NONE` (bare Avro).               | enum                         | CONFLUENT_4B    |
 | schemaIdEvalString      | X (for `EXPRESSION` source)    | EL that evaluates to the schema subject (e.g. `{#message.topic}-value`).                                       | string                       |                 |
 | schemaVersionEvalString | X (for `EXPRESSION` source)    | EL that evaluates to the schema version.                                                                       | string                       |                 |
 | validationDepth         |                                | `CONTENT` decodes the payload; `SCHEMA_ONLY` only checks the id resolves to the topic subject (no decode).     | enum                         | CONTENT         |
@@ -39,7 +38,7 @@ It supports schema registry, getting schema ID from confluent native mechanism, 
 
 How the schema to validate against is located:
 
-- **`FROM_RECORD`** – use the schema id carried in the record (in the wire-format envelope or a record header) and enforce that it resolves to the schema registered under the topic's subject (`<topic>-value`) before accepting the record. The subject is the authority — a producer cannot validate against an arbitrary registered schema. The payload is then decoded with the producer's (validated) writer schema.
+- **`FROM_RECORD`** – use the schema id carried in the record's wire-format envelope and enforce that it resolves to the schema registered under the topic's subject (`<topic>-value`) before accepting the record. The subject is the authority — a producer cannot validate against an arbitrary registered schema. The payload is then decoded with the producer's (validated) writer schema.
 - **`EXPRESSION`** – resolve the schema by an Expression Language mapping that evaluates to a subject and version (e.g. `{#message.topic}-value`), ignoring the producer's id.
 
 ### Wire format
@@ -47,9 +46,9 @@ How the schema to validate against is located:
 How the schema id / Avro payload is framed in the record. This determines where the Avro body starts (envelope to skip) and — for `FROM_RECORD` — where the id is read:
 
 - **`CONFLUENT_4B`** – Confluent wire format: magic byte `0x00` + 4-byte schema id, then the Avro body.
-- **`APICURIO_8B`** – Apicurio legacy wire format: magic byte `0x00` + 8-byte global id, then the Avro body.
-- **`HEADER`** – schema id carried in a Kafka record header (`schemaIdHeader`); the body is the bare Avro payload.
 - **`NONE`** – no envelope; the body is bare Avro with no id (use with `EXPRESSION`).
+
+> Other framings (e.g. Apicurio's 8-byte global id or a header-carried id) will be added once a matching schema registry resource exists to resolve their ids.
 
 ### Validation depth
 
@@ -106,12 +105,11 @@ Strikethrough text indicates that a version is deprecated.
 |:----------------------|:-----------------------|:----------:|:---------|:-------------|
 | Error handling strategy<br>`nativeErrorHandling`| object|  | | <br/>See "Error handling strategy" section.|
 | Schema subject mapping<br>`schemaIdEvalString`| string|  | | EL that evaluates to the schema subject (used when schema source strategy is Expression). E.g. {#message.topic}-value.|
-| Schema id header<br>`schemaIdHeader`| string|  | | Record header carrying the schema id (used when wire format is Record header).|
 | Schema source strategy<br>`schemaIdSource`| enum (string)|  | `FROM_RECORD`| How the schema to validate against is located. FROM_RECORD uses the id carried in the record (enforced against the topic subject). EXPRESSION resolves the schema by an EL mapping (e.g. derived from the topic), ignoring the producer's id.<br>Values: `FROM_RECORD` `EXPRESSION`|
 | Schema source<br>`schemaSource`| object|  | | <br/>See "Schema source" section.|
 | Schema version mapping<br>`schemaVersionEvalString`| string|  | | EL that evaluates to the schema version (used when schema source strategy is Expression).|
 | Validation depth<br>`validationDepth`| enum (string)|  | `CONTENT`| CONTENT decodes the payload to confirm it conforms. SCHEMA_ONLY only checks that the embedded id resolves to the topic subject (no deserialization, lower latency; requires the Embedded schema id source).<br>Values: `CONTENT` `SCHEMA_ONLY`|
-| Wire format<br>`wireFormat`| enum (string)|  | `CONFLUENT_4B`| How the schema id / Avro payload is framed in the record. Determines where the Avro body starts (envelope to skip), and — for FROM_RECORD — where the id is read. NONE = bare Avro (no envelope).<br>Values: `CONFLUENT_4B` `APICURIO_8B` `HEADER` `NONE`|
+| Wire format<br>`wireFormat`| enum (string)|  | `CONFLUENT_4B`| How the schema id / Avro payload is framed in the record. Determines where the Avro body starts (envelope to skip), and — for FROM_RECORD — where the id is read. NONE = bare Avro (no envelope).<br>Values: `CONFLUENT_4B` `NONE`|
 
 
 #### Error handling strategy (Object)
@@ -266,6 +264,25 @@ spec:
 
 
 ## Changelog
+
+### [2.2.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.3...2.2.0-alpha.4) (2026-05-29)
+
+
+##### Bug Fixes
+
+* force version of rhino ([831273a](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/831273aadc72197d2676987407952f8e2adcda2e))
+
+
+##### Reverts
+
+* Revert "fix: bump APIM BOM to 4.10.14 for rhino 1.7.15.1 (CVE-2025-66453) (#71)" ([1e527d9](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/1e527d9e3ae1bdf3f7c3faab6556becc847a4946)), closes [#71](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/71)
+
+### [2.2.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.2...2.2.0-alpha.3) (2026-05-21)
+
+
+##### Bug Fixes
+
+* bump APIM BOM to 4.10.14 for rhino 1.7.15.1 (CVE-2025-66453) ([#71](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/71)) ([69242e1](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/69242e1f6358c58235e263f6f81f61007e281438))
 
 ### [2.2.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.1...2.2.0-alpha.2) (2026-03-10)
 

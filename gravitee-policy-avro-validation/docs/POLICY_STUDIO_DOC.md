@@ -19,8 +19,7 @@ It supports schema registry, getting schema ID from confluent native mechanism, 
 |-------------------------|--------------------------------|---------------------------------------------------------------------------------------------------------------|------------------------------|-----------------|
 | schemaSource            | X                              | Defines the schema source (schema registry resource) used to resolve the validation schema.                   | Schema Source object         |                 |
 | schemaIdSource          | X                              | How the schema to validate against is located: `FROM_RECORD` or `EXPRESSION`.                                  | enum                         | FROM_RECORD     |
-| wireFormat              | X                              | How the schema id / Avro payload is framed in the record: `CONFLUENT_4B`, `APICURIO_8B`, `HEADER`, `NONE`.     | enum                         | CONFLUENT_4B    |
-| schemaIdHeader          | X (for `HEADER` wire format)   | Record header carrying the schema id.                                                                          | string                       |                 |
+| wireFormat              | X                              | How the schema id / Avro payload is framed in the record: `CONFLUENT_4B` or `NONE` (bare Avro).               | enum                         | CONFLUENT_4B    |
 | schemaIdEvalString      | X (for `EXPRESSION` source)    | EL that evaluates to the schema subject (e.g. `{#message.topic}-value`).                                       | string                       |                 |
 | schemaVersionEvalString | X (for `EXPRESSION` source)    | EL that evaluates to the schema version.                                                                       | string                       |                 |
 | validationDepth         |                                | `CONTENT` decodes the payload; `SCHEMA_ONLY` only checks the id resolves to the topic subject (no decode).     | enum                         | CONTENT         |
@@ -30,7 +29,7 @@ It supports schema registry, getting schema ID from confluent native mechanism, 
 
 How the schema to validate against is located:
 
-- **`FROM_RECORD`** – use the schema id carried in the record (in the wire-format envelope or a record header) and enforce that it resolves to the schema registered under the topic's subject (`<topic>-value`) before accepting the record. The subject is the authority — a producer cannot validate against an arbitrary registered schema. The payload is then decoded with the producer's (validated) writer schema.
+- **`FROM_RECORD`** – use the schema id carried in the record's wire-format envelope and enforce that it resolves to the schema registered under the topic's subject (`<topic>-value`) before accepting the record. The subject is the authority — a producer cannot validate against an arbitrary registered schema. The payload is then decoded with the producer's (validated) writer schema.
 - **`EXPRESSION`** – resolve the schema by an Expression Language mapping that evaluates to a subject and version (e.g. `{#message.topic}-value`), ignoring the producer's id.
 
 ### Wire format
@@ -38,9 +37,9 @@ How the schema to validate against is located:
 How the schema id / Avro payload is framed in the record. This determines where the Avro body starts (envelope to skip) and — for `FROM_RECORD` — where the id is read:
 
 - **`CONFLUENT_4B`** – Confluent wire format: magic byte `0x00` + 4-byte schema id, then the Avro body.
-- **`APICURIO_8B`** – Apicurio legacy wire format: magic byte `0x00` + 8-byte global id, then the Avro body.
-- **`HEADER`** – schema id carried in a Kafka record header (`schemaIdHeader`); the body is the bare Avro payload.
 - **`NONE`** – no envelope; the body is bare Avro with no id (use with `EXPRESSION`).
+
+> Other framings (e.g. Apicurio's 8-byte global id or a header-carried id) will be added once a matching schema registry resource exists to resolve their ids.
 
 ### Validation depth
 
