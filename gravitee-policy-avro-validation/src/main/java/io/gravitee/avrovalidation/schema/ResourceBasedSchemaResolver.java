@@ -29,7 +29,7 @@ import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
 
 /**
- * EVAL resolver: resolves the schema by an Expression Language mapping that evaluates to a schema subject and version
+ * EXPRESSION resolver: resolves the schema by an Expression Language mapping that evaluates to a schema subject and version
  * (e.g. the subject derived from {@code #message.topic}). The schema is fetched by subject from the schema registry
  * resource — the authority is the operator-configured mapping.
  *

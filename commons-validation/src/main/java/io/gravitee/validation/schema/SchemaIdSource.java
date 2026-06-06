@@ -15,16 +15,19 @@
  */
 package io.gravitee.validation.schema;
 
+/**
+ * How the schema to validate against is located.
+ */
 public enum SchemaIdSource {
     /**
-     * Use the schema id the producer embedded in the record (Confluent wire format), but enforce that it resolves
-     * to a schema registered under the topic's subject before accepting it. The subject is the authority — the
-     * producer cannot validate against an arbitrary registered schema. The payload is then decoded with the
-     * producer's (validated) writer schema.
+     * Use the schema id embedded in the record (Confluent wire format), enforced against the schema registered
+     * under the topic's subject before accepting it. The subject is the authority — the producer cannot validate
+     * against an arbitrary registered schema; the payload is then decoded with the producer's (validated) writer schema.
      */
-    NATIVE,
+    EMBEDDED_ID,
     /**
-     * Resolve the schema by an Expression Language mapping (e.g. the subject derived from {@code #message.topic}).
+     * Resolve the schema by an Expression Language mapping that evaluates to a subject and version
+     * (e.g. derived from {@code #message.topic}). The producer's embedded id is ignored.
      */
-    EVAL,
+    EXPRESSION,
 }

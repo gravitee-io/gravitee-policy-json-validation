@@ -134,19 +134,19 @@
                             "title": "Schema identifier source",
                             "oneOf": [
                                 {
-                                    "title": "Native",
+                                    "title": "Embedded schema id",
                                     "description": "Use the producer's embedded schema id, enforced against the schema registered under the topic's subject (<topic>-value) before accepting the record.",
                                     "properties": {
                                         "schemaIdSource": {
-                                            "const": "NATIVE"
+                                            "const": "EMBEDDED_ID"
                                         }
                                     }
                                 },
                                 {
-                                    "title": "SpEL",
+                                    "title": "Expression",
                                     "properties": {
                                         "schemaIdSource": {
-                                            "const": "EVAL"
+                                            "const": "EXPRESSION"
                                         },
                                         "schemaIdEvalString": {
                                             "title": "Schema name mapping",
@@ -173,7 +173,7 @@
                             "const": "SIMPLE"
                         },
                         "schemaIdSource": {
-                            "const": "EVAL"
+                            "const": "EXPRESSION"
                         },
                         "schemaIdEvalString": {
                             "title": "Schema name mapping",
@@ -196,19 +196,19 @@
             "description": "Schema ID source",
             "oneOf": [
                 {
-                    "title": "Native",
+                    "title": "Embedded schema id",
                     "properties": {
                         "schemaIdSource": {
-                            "const": "NATIVE"
+                            "const": "EMBEDDED_ID"
                         }
                     },
                     "required": ["schemaIdSource"]
                 },
                 {
-                    "title": "Custom",
+                    "title": "Expression",
                     "properties": {
                         "schemaIdSource": {
-                            "const": "EVAL"
+                            "const": "EXPRESSION"
                         }
                     },
                     "required": ["schemaIdSource"]

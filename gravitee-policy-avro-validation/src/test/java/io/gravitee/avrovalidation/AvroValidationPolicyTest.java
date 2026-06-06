@@ -200,7 +200,7 @@ class AvroValidationPolicyTest {
 
         var configuration = new AvroValidationPolicyConfiguration();
         configuration.setSerializationForm(SerializationForm.CONFLUENT);
-        configuration.setSchemaIdSource(SchemaIdSource.NATIVE);
+        configuration.setSchemaIdSource(SchemaIdSource.EMBEDDED_ID);
         configuration.setSchemaSource(schemaSource);
         configuration.setNativeErrorHandling(nativeErrorHandling);
 
