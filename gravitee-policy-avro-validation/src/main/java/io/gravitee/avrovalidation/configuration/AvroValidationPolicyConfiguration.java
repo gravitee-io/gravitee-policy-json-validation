@@ -15,7 +15,6 @@
  */
 package io.gravitee.avrovalidation.configuration;
 
-import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.policy.api.PolicyConfiguration;
 import io.gravitee.validation.configuration.errorhandling.NativeErrorHandling;
 import io.gravitee.validation.kafka.wireformat.WireFormat;
@@ -33,8 +32,6 @@ import lombok.Setter;
 public class AvroValidationPolicyConfiguration implements PolicyConfiguration {
 
     private SchemaSource schemaSource;
-
-    private SerializationForm serializationForm;
 
     private SchemaIdSource schemaIdSource;
 

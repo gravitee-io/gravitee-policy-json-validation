@@ -13,9 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.avrovalidation.configuration.schema;
+package io.gravitee.validation.kafka.wireformat;
 
-public enum SerializationForm {
-    CONFLUENT,
-    SIMPLE,
+import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
+import io.reactivex.rxjava3.core.Maybe;
+
+/**
+ * No envelope: the whole record body is bare Avro and carries no schema id. The payload offset is 0 and there is no
+ * id (so this format is only usable with the EXPRESSION schema source, which selects the schema itself).
+ */
+class NoneWireFormatExtractor implements WireFormatExtractor {
+
+    @Override
+    public Maybe<EmbeddedSchemaRef> extract(KafkaMessage message) {
+        return Maybe.just(new EmbeddedSchemaRef(null, 0));
+    }
 }

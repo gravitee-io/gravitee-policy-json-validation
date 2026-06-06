@@ -25,4 +25,6 @@ public enum WireFormat {
     APICURIO_8B,
     /** Schema id carried in a Kafka record header (e.g. Apicurio header strategy); the body is the bare Avro payload. */
     HEADER,
+    /** No envelope: the record body is bare Avro and carries no schema id (payload offset 0). Use with EXPRESSION. */
+    NONE,
 }

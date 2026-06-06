@@ -16,12 +16,14 @@
 package io.gravitee.avrovalidation.schema;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
-import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.schema_registry.api.SchemaRegistryResource;
+import io.gravitee.validation.kafka.wireformat.EmbeddedSchemaRef;
+import io.gravitee.validation.kafka.wireformat.WireFormatExtractor;
+import io.gravitee.validation.kafka.wireformat.WireFormatExtractorFactory;
 import io.gravitee.validation.schema.SchemaReference;
 import io.gravitee.validation.schema.SchemaReferenceExtractor;
 import io.gravitee.validation.schema.SchemaRegistryBasedResolver;
@@ -30,24 +32,23 @@ import io.reactivex.rxjava3.core.Single;
 
 /**
  * EXPRESSION resolver: resolves the schema by an Expression Language mapping that evaluates to a schema subject and
- * version (e.g. derived from {@code #message.topic}). The schema is fetched by subject from the schema registry
- * resource — the authority is the operator-configured mapping; the producer's embedded id is ignored.
+ * version (e.g. derived from {@code #message.topic}). The schema is chosen by the operator-configured mapping; the
+ * producer's embedded id is ignored. The wire format is still used to locate where the Avro payload begins (envelope
+ * to skip) — use {@code NONE} for bare Avro.
  *
  * @author GraviteeSource Team
  */
 public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
 
-    private static final int CONFLUENT_ENVELOPE_LENGTH = 5;
-
     private final SchemaRegistryBasedResolver<KafkaMessageExecutionContext, KafkaMessage> delegate;
-    private final int payloadOffset;
+    private final WireFormatExtractor wireFormatExtractor;
 
     public ResourceBasedSchemaResolver(AvroValidationPolicyConfiguration configuration) {
         this(
             configuration.getSchemaSource().getResourceName(),
             configuration.getSchemaIdEvalString(),
             configuration.getSchemaVersionEvalString(),
-            configuration.getSerializationForm()
+            WireFormatExtractorFactory.create(configuration.getWireFormat(), configuration.getSchemaIdHeader())
         );
     }
 
@@ -55,20 +56,24 @@ public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
         String resourceName,
         String schemaIdEvalString,
         String schemaVersionEvalString,
-        SerializationForm serializationForm
+        WireFormatExtractor wireFormatExtractor
     ) {
         this.delegate = new SchemaRegistryBasedResolver<>(
             context -> schemaRegistryResource(context, resourceName),
             (SchemaReferenceExtractor<KafkaMessageExecutionContext, KafkaMessage>) (context, message) ->
                 resolveSchemaReference(context.getTemplateEngine(message), schemaIdEvalString, schemaVersionEvalString)
         );
-        // SIMPLE = bare Avro (no envelope); otherwise the Confluent envelope (magic + 4-byte id) precedes the body.
-        this.payloadOffset = serializationForm == SerializationForm.SIMPLE ? 0 : CONFLUENT_ENVELOPE_LENGTH;
+        this.wireFormatExtractor = wireFormatExtractor;
     }
 
     @Override
     public Single<ResolvedSchema> resolveSchema(KafkaMessageExecutionContext context, KafkaMessage message) {
-        return delegate.resolveSchema(context, message).map(schema -> new ResolvedSchema(schema, payloadOffset));
+        // Schema comes from the EL mapping; the wire format only provides where the Avro body starts.
+        return Single.zip(
+            delegate.resolveSchema(context, message),
+            wireFormatExtractor.extract(message).map(EmbeddedSchemaRef::payloadOffset).toSingle(),
+            ResolvedSchema::new
+        );
     }
 
     private static SchemaRegistryResource<?> schemaRegistryResource(KafkaMessageExecutionContext context, String resourceName) {

@@ -118,113 +118,11 @@
                 }
             },
             "required": ["sourceType", "resourceName"]
-        },
-        "serializationForm": {
-            "title": "SerializationForm",
-            "type": "object",
-            "description": "Serialization form",
-            "oneOf": [
-                {
-                    "title": "Confluent",
-                    "properties": {
-                        "serializationForm": {
-                            "const": "CONFLUENT"
-                        },
-                        "schemaIdSource": {
-                            "title": "Schema identifier source",
-                            "oneOf": [
-                                {
-                                    "title": "Embedded schema id",
-                                    "description": "Use the producer's embedded schema id, enforced against the schema registered under the topic's subject (<topic>-value) before accepting the record.",
-                                    "properties": {
-                                        "schemaIdSource": {
-                                            "const": "EMBEDDED_ID"
-                                        }
-                                    }
-                                },
-                                {
-                                    "title": "Expression",
-                                    "properties": {
-                                        "schemaIdSource": {
-                                            "const": "EXPRESSION"
-                                        },
-                                        "schemaIdEvalString": {
-                                            "title": "Schema name mapping",
-                                            "description": "EL that evaluates to schema name",
-                                            "type": "string"
-                                        },
-                                        "schemaVersionEvalString": {
-                                            "title": "Schema version mapping",
-                                            "description": "EL that evaluates to schema version",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": ["schemaIdSource", "schemaIdEvalString", "schemaVersionEvalString"]
-                                }
-                            ]
-                        }
-                    },
-                    "required": ["serializationForm", "schemaIdSource"]
-                },
-                {
-                    "title": "Simple",
-                    "properties": {
-                        "serializationForm": {
-                            "const": "SIMPLE"
-                        },
-                        "schemaIdSource": {
-                            "const": "EXPRESSION"
-                        },
-                        "schemaIdEvalString": {
-                            "title": "Schema name mapping",
-                            "description": "EL that evaluates to schema name",
-                            "type": "string"
-                        },
-                        "schemaVersionEvalString": {
-                            "title": "Schema version mapping",
-                            "description": "EL that evaluates to schema version",
-                            "type": "string"
-                        }
-                    },
-                    "required": ["serializationForm", "schemaIdSource", "schemaIdEvalString", "schemaVersionEvalString"]
-                }
-            ]
-        },
-        "schemaIdSource": {
-            "title": "SchemaIdSource",
-            "type": "object",
-            "description": "Schema ID source",
-            "oneOf": [
-                {
-                    "title": "Embedded schema id",
-                    "properties": {
-                        "schemaIdSource": {
-                            "const": "EMBEDDED_ID"
-                        }
-                    },
-                    "required": ["schemaIdSource"]
-                },
-                {
-                    "title": "Expression",
-                    "properties": {
-                        "schemaIdSource": {
-                            "const": "EXPRESSION"
-                        }
-                    },
-                    "required": ["schemaIdSource"]
-                }
-            ]
         }
     },
     "properties": {
         "schemaSource": {
             "$ref": "#/definitions/schemaSource",
-            "x-schema-form": {
-                "hidden": true
-            }
-        },
-        "serializationForm": {
-            "$ref": "#/definitions/serializationForm",
             "x-schema-form": {
                 "hidden": true
             }
@@ -235,23 +133,47 @@
                 "hidden": true
             }
         },
+        "schemaIdSource": {
+            "title": "Schema source strategy",
+            "description": "How the schema to validate against is located. EMBEDDED_ID uses the id carried in the record (enforced against the topic subject). EXPRESSION resolves the schema by an EL mapping (e.g. derived from the topic), ignoring the producer's id.",
+            "type": "string",
+            "enum": ["EMBEDDED_ID", "EXPRESSION"],
+            "default": "EMBEDDED_ID",
+            "gioConfig": {
+                "enumLabelMap": {
+                    "EMBEDDED_ID": "Embedded schema id",
+                    "EXPRESSION": "Expression"
+                }
+            }
+        },
         "wireFormat": {
             "title": "Wire format",
-            "description": "How the schema id is framed in the record (used with the Embedded schema id source).",
+            "description": "How the schema id / Avro payload is framed in the record. Determines where the Avro body starts (envelope to skip), and — for EMBEDDED_ID — where the id is read. NONE = bare Avro (no envelope).",
             "type": "string",
-            "enum": ["CONFLUENT_4B", "APICURIO_8B", "HEADER"],
+            "enum": ["CONFLUENT_4B", "APICURIO_8B", "HEADER", "NONE"],
             "default": "CONFLUENT_4B",
             "gioConfig": {
                 "enumLabelMap": {
                     "CONFLUENT_4B": "Confluent (magic + 4-byte id)",
                     "APICURIO_8B": "Apicurio legacy (magic + 8-byte id)",
-                    "HEADER": "Record header"
+                    "HEADER": "Record header",
+                    "NONE": "None (bare Avro)"
                 }
             }
         },
         "schemaIdHeader": {
             "title": "Schema id header",
             "description": "Record header carrying the schema id (used when wire format is Record header).",
+            "type": "string"
+        },
+        "schemaIdEvalString": {
+            "title": "Schema subject mapping",
+            "description": "EL that evaluates to the schema subject (used when schema source strategy is Expression). E.g. {#message.topic}-value.",
+            "type": "string"
+        },
+        "schemaVersionEvalString": {
+            "title": "Schema version mapping",
+            "description": "EL that evaluates to the schema version (used when schema source strategy is Expression).",
             "type": "string"
         },
         "validationDepth": {

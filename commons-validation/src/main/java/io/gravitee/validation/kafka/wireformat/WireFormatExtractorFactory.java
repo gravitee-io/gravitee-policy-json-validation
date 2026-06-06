@@ -28,6 +28,7 @@ public final class WireFormatExtractorFactory {
             case CONFLUENT_4B -> new ConfluentWireFormatExtractor();
             case APICURIO_8B -> new ApicurioLegacyWireFormatExtractor();
             case HEADER -> new HeaderWireFormatExtractor(headerName);
+            case NONE -> new NoneWireFormatExtractor();
         };
     }
 }

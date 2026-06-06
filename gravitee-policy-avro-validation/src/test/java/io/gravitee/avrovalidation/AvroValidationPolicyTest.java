@@ -18,7 +18,6 @@ package io.gravitee.avrovalidation;
 import static org.mockito.Mockito.*;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
-import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.avrovalidation.schema.AvroSchemaResolver;
 import io.gravitee.avrovalidation.schema.ResolvedSchema;
 import io.gravitee.avrovalidation.schema.SchemaResolverFactory;
@@ -203,7 +202,6 @@ class AvroValidationPolicyTest {
         nativeErrorHandling.setOnSubscribe(subscribeErrorHandling);
 
         var configuration = new AvroValidationPolicyConfiguration();
-        configuration.setSerializationForm(SerializationForm.CONFLUENT);
         configuration.setSchemaIdSource(SchemaIdSource.EMBEDDED_ID);
         configuration.setSchemaSource(schemaSource);
         configuration.setNativeErrorHandling(nativeErrorHandling);
