@@ -13,16 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.avrovalidation.schema;
-
-import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
-import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
-import io.reactivex.rxjava3.core.Single;
+package io.gravitee.validation.kafka.wireformat;
 
 /**
- * Resolves the schema a record must validate against, and the offset at which its Avro payload starts.
- * Resolution failures (no id, unknown schema, subject mismatch) surface as the {@link Single}'s error.
+ * The schema id extracted from a record's wire format, together with the offset at which the Avro payload begins
+ * (i.e. the number of envelope bytes to skip before decoding). For header-based formats the body is the bare payload,
+ * so {@code payloadOffset} is 0.
  */
-public interface AvroSchemaResolver {
-    Single<ResolvedSchema> resolveSchema(KafkaMessageExecutionContext context, KafkaMessage message);
-}
+public record EmbeddedSchemaRef(String schemaId, int payloadOffset) {}

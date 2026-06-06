@@ -234,6 +234,38 @@
             "x-schema-form": {
                 "hidden": true
             }
+        },
+        "wireFormat": {
+            "title": "Wire format",
+            "description": "How the schema id is framed in the record (used with the Embedded schema id source).",
+            "type": "string",
+            "enum": ["CONFLUENT_4B", "APICURIO_8B", "HEADER"],
+            "default": "CONFLUENT_4B",
+            "gioConfig": {
+                "enumLabelMap": {
+                    "CONFLUENT_4B": "Confluent (magic + 4-byte id)",
+                    "APICURIO_8B": "Apicurio legacy (magic + 8-byte id)",
+                    "HEADER": "Record header"
+                }
+            }
+        },
+        "schemaIdHeader": {
+            "title": "Schema id header",
+            "description": "Record header carrying the schema id (used when wire format is Record header).",
+            "type": "string"
+        },
+        "validationDepth": {
+            "title": "Validation depth",
+            "description": "CONTENT decodes the payload to confirm it conforms. SCHEMA_ONLY only checks that the embedded id resolves to the topic subject (no deserialization, lower latency; requires the Embedded schema id source).",
+            "type": "string",
+            "enum": ["CONTENT", "SCHEMA_ONLY"],
+            "default": "CONTENT",
+            "gioConfig": {
+                "enumLabelMap": {
+                    "CONTENT": "Validate content (decode)",
+                    "SCHEMA_ONLY": "Trust schema only (no decode)"
+                }
+            }
         }
     }
 }

@@ -19,7 +19,6 @@ import static io.gravitee.avrovalidation.schema.SchemaResolverFactory.createSche
 import static io.gravitee.validation.kafka.handler.KafkaValidationResultHandlerFactory.createValidationResultHandler;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
-import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.avrovalidation.schema.AvroSchemaResolver;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
@@ -28,6 +27,7 @@ import io.gravitee.gateway.reactive.api.policy.kafka.KafkaPolicy;
 import io.gravitee.resource.schema_registry.api.Schema;
 import io.gravitee.validation.configuration.errorhandling.NativeErrorHandling;
 import io.gravitee.validation.kafka.handler.KafkaValidationResultHandler;
+import io.gravitee.validation.schema.ValidationDepth;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
@@ -101,9 +101,15 @@ public class AvroValidationPolicy implements KafkaPolicy {
                 : handler.onError(ctx, message, "Empty record content is not allowed");
         }
 
+        final boolean schemaOnly = configuration.getValidationDepth() == ValidationDepth.SCHEMA_ONLY;
+
         return schemaResolver
             .resolveSchema(ctx, message)
-            .map(schema -> isValidAvroBinary(content, schema, configuration.getSerializationForm()))
+            // SCHEMA_ONLY: the gate (subject membership) already ran during resolution — accept without decoding.
+            // CONTENT: decode the payload against the resolved (writer) schema, at the wire-format payload offset.
+            .map(resolved ->
+                schemaOnly ? new ValidationResult(true) : isValidAvroBinary(content, resolved.schema(), resolved.payloadOffset())
+            )
             // Route schema-resolution failures (no envelope, registry unavailable, schema not found) through the
             // same configured handler as content failures, instead of erroring the message stream. The handler's
             // own outcome (e.g. an interruption on FAIL) is produced downstream and propagates normally.
@@ -117,31 +123,19 @@ public class AvroValidationPolicy implements KafkaPolicy {
     }
 
     /**
-     * Backward-compatible overload assuming the Confluent serialization form.
+     * Decodes the Avro payload (starting at {@code payloadOffset}, i.e. after any wire-format envelope) against the
+     * given schema and checks it is consumed cleanly. The envelope/framing is validated by the wire-format extractor
+     * upstream; this method only decodes the body.
      */
-    public static ValidationResult isValidAvroBinary(Buffer messageContent, Schema writerSchema) {
-        return isValidAvroBinary(messageContent, writerSchema, SerializationForm.CONFLUENT);
-    }
-
-    public static ValidationResult isValidAvroBinary(Buffer messageContent, Schema writerSchema, SerializationForm serializationForm) {
+    public static ValidationResult isValidAvroBinary(Buffer messageContent, Schema writerSchema, int payloadOffset) {
         try {
             org.apache.avro.Schema parsedSchema = parseSchema(writerSchema);
 
             byte[] bytes = messageContent.getBytes();
-
-            int payloadOffset;
-            if (serializationForm == SerializationForm.SIMPLE) {
-                // Bare Avro binary — no Confluent envelope.
-                payloadOffset = 0;
-            } else {
-                // Confluent wire-format: magic(1) + schemaId(4) + payload
-                if (bytes.length < 5) {
-                    return new ValidationResult(new IOException("Message too short for Confluent Avro"));
-                }
-                if (bytes[0] != 0x00) {
-                    return new ValidationResult(new IOException("Not a Confluent Avro message (magic byte != 0)"));
-                }
-                payloadOffset = 5;
+            if (payloadOffset < 0 || payloadOffset > bytes.length) {
+                return new ValidationResult(
+                    new IOException("Invalid payload offset " + payloadOffset + " for message length " + bytes.length)
+                );
             }
             int payloadLength = bytes.length - payloadOffset;
 

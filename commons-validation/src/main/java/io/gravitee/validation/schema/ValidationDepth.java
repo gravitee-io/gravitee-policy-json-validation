@@ -13,16 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.gravitee.avrovalidation.schema;
-
-import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
-import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
-import io.reactivex.rxjava3.core.Single;
+package io.gravitee.validation.schema;
 
 /**
- * Resolves the schema a record must validate against, and the offset at which its Avro payload starts.
- * Resolution failures (no id, unknown schema, subject mismatch) surface as the {@link Single}'s error.
+ * How deeply a record is validated.
  */
-public interface AvroSchemaResolver {
-    Single<ResolvedSchema> resolveSchema(KafkaMessageExecutionContext context, KafkaMessage message);
+public enum ValidationDepth {
+    /**
+     * Trust the schema reference only: verify the record's embedded schema id resolves to the topic's subject,
+     * without deserializing the payload. Cheap (a cached registry lookup, no Avro decode). Only meaningful for the
+     * {@code EMBEDDED_ID} schema source.
+     */
+    SCHEMA_ONLY,
+    /**
+     * Resolve the schema and additionally deserialize the payload to confirm it conforms. Strongest guarantee; adds
+     * one Avro decode per record.
+     */
+    CONTENT,
 }

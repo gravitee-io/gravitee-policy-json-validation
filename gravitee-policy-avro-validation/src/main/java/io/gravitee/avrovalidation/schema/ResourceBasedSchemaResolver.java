@@ -16,11 +16,11 @@
 package io.gravitee.avrovalidation.schema;
 
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
+import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.el.TemplateEngine;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.resource.api.ResourceManager;
-import io.gravitee.resource.schema_registry.api.Schema;
 import io.gravitee.resource.schema_registry.api.SchemaRegistryResource;
 import io.gravitee.validation.schema.SchemaReference;
 import io.gravitee.validation.schema.SchemaReferenceExtractor;
@@ -29,35 +29,46 @@ import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
 
 /**
- * EXPRESSION resolver: resolves the schema by an Expression Language mapping that evaluates to a schema subject and version
- * (e.g. the subject derived from {@code #message.topic}). The schema is fetched by subject from the schema registry
- * resource — the authority is the operator-configured mapping.
+ * EXPRESSION resolver: resolves the schema by an Expression Language mapping that evaluates to a schema subject and
+ * version (e.g. derived from {@code #message.topic}). The schema is fetched by subject from the schema registry
+ * resource — the authority is the operator-configured mapping; the producer's embedded id is ignored.
  *
  * @author GraviteeSource Team
  */
 public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
 
+    private static final int CONFLUENT_ENVELOPE_LENGTH = 5;
+
     private final SchemaRegistryBasedResolver<KafkaMessageExecutionContext, KafkaMessage> delegate;
+    private final int payloadOffset;
 
     public ResourceBasedSchemaResolver(AvroValidationPolicyConfiguration configuration) {
         this(
             configuration.getSchemaSource().getResourceName(),
             configuration.getSchemaIdEvalString(),
-            configuration.getSchemaVersionEvalString()
+            configuration.getSchemaVersionEvalString(),
+            configuration.getSerializationForm()
         );
     }
 
-    public ResourceBasedSchemaResolver(String resourceName, String schemaIdEvalString, String schemaVersionEvalString) {
+    public ResourceBasedSchemaResolver(
+        String resourceName,
+        String schemaIdEvalString,
+        String schemaVersionEvalString,
+        SerializationForm serializationForm
+    ) {
         this.delegate = new SchemaRegistryBasedResolver<>(
             context -> schemaRegistryResource(context, resourceName),
             (SchemaReferenceExtractor<KafkaMessageExecutionContext, KafkaMessage>) (context, message) ->
                 resolveSchemaReference(context.getTemplateEngine(message), schemaIdEvalString, schemaVersionEvalString)
         );
+        // SIMPLE = bare Avro (no envelope); otherwise the Confluent envelope (magic + 4-byte id) precedes the body.
+        this.payloadOffset = serializationForm == SerializationForm.SIMPLE ? 0 : CONFLUENT_ENVELOPE_LENGTH;
     }
 
     @Override
-    public Single<Schema> resolveSchema(KafkaMessageExecutionContext context, KafkaMessage message) {
-        return delegate.resolveSchema(context, message);
+    public Single<ResolvedSchema> resolveSchema(KafkaMessageExecutionContext context, KafkaMessage message) {
+        return delegate.resolveSchema(context, message).map(schema -> new ResolvedSchema(schema, payloadOffset));
     }
 
     private static SchemaRegistryResource<?> schemaRegistryResource(KafkaMessageExecutionContext context, String resourceName) {

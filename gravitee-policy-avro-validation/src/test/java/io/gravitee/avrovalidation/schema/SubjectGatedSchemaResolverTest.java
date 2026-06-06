@@ -80,7 +80,7 @@ class SubjectGatedSchemaResolverTest {
             .resolveSchema(ctx, new KafkaMessageStub(AVRO_MESSAGE))
             .test()
             .assertNoErrors()
-            .assertValue(schema -> schema.getContent().equals(SCHEMA));
+            .assertValue(resolved -> resolved.schema().getContent().equals(SCHEMA) && resolved.payloadOffset() == 5);
     }
 
     @Test

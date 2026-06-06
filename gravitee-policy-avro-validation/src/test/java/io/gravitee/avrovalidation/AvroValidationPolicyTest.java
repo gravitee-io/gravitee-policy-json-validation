@@ -20,6 +20,7 @@ import static org.mockito.Mockito.*;
 import io.gravitee.avrovalidation.configuration.AvroValidationPolicyConfiguration;
 import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.avrovalidation.schema.AvroSchemaResolver;
+import io.gravitee.avrovalidation.schema.ResolvedSchema;
 import io.gravitee.avrovalidation.schema.SchemaResolverFactory;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
@@ -39,6 +40,7 @@ import io.gravitee.validation.kafka.handler.support.TestFailHandler;
 import io.gravitee.validation.schema.SchemaIdSource;
 import io.gravitee.validation.schema.SchemaSource;
 import io.gravitee.validation.schema.SchemaSourceType;
+import io.gravitee.validation.schema.ValidationDepth;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
 import java.io.IOException;
@@ -173,16 +175,18 @@ class AvroValidationPolicyTest {
         messageCaptor.getValue().apply(stubMessage).test().assertError(IllegalArgumentException.class);
     }
 
-    @AfterEach
-    void tearDown() {
-        if (handlerFactoryMock != null) handlerFactoryMock.close();
-        if (schemaResolverFactoryMock != null) schemaResolverFactoryMock.close();
+    @Test
+    void schemaOnlySkipsContentValidation() {
+        // A record that would FAIL content decoding (trailing bytes) is accepted in SCHEMA_ONLY mode,
+        // because the payload is not deserialized — only the (mocked) schema resolution / gate runs.
+        var schemaOnlyPolicy = new AvroValidationPolicy(newConfiguration(ValidationDepth.SCHEMA_ONLY));
+        var stubMessage = new KafkaMessageStub(wrongAvroMessage);
+        schemaOnlyPolicy.onMessageRequest(ctx).test().awaitDone(1, TimeUnit.SECONDS);
+        verify(request).onMessage(messageCaptor.capture());
+        messageCaptor.getValue().apply(stubMessage).test().assertNoErrors();
     }
 
-    @BeforeEach
-    void setup() {
-        lenient().when(schemaResolver.resolveSchema(any(), any())).thenReturn(Single.just(new SchemaImpl(schema)));
-
+    private static AvroValidationPolicyConfiguration newConfiguration(ValidationDepth validationDepth) {
         var schemaSource = new SchemaSource();
         schemaSource.setSourceType(SchemaSourceType.SCHEMA_REGISTRY_RESOURCE);
         schemaSource.setResourceName("schemas");
@@ -203,6 +207,21 @@ class AvroValidationPolicyTest {
         configuration.setSchemaIdSource(SchemaIdSource.EMBEDDED_ID);
         configuration.setSchemaSource(schemaSource);
         configuration.setNativeErrorHandling(nativeErrorHandling);
+        configuration.setValidationDepth(validationDepth);
+        return configuration;
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (handlerFactoryMock != null) handlerFactoryMock.close();
+        if (schemaResolverFactoryMock != null) schemaResolverFactoryMock.close();
+    }
+
+    @BeforeEach
+    void setup() {
+        lenient().when(schemaResolver.resolveSchema(any(), any())).thenReturn(Single.just(new ResolvedSchema(new SchemaImpl(schema), 5)));
+
+        var configuration = newConfiguration(ValidationDepth.CONTENT);
 
         schemaResolverFactoryMock = mockStatic(SchemaResolverFactory.class);
         schemaResolverFactoryMock.when(() -> SchemaResolverFactory.createSchemaResolver(any())).thenReturn(schemaResolver);

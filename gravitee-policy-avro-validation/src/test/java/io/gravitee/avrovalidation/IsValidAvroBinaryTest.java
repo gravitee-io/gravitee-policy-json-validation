@@ -18,13 +18,13 @@ package io.gravitee.avrovalidation;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.helpers.SchemaImpl;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for the pure {@link AvroValidationPolicy#isValidAvroBinary} decoder, covering both serialization forms.
+ * Unit tests for the pure {@link AvroValidationPolicy#isValidAvroBinary} decoder. The decoder is given an explicit
+ * payload offset (the envelope having been parsed by the wire-format extractor upstream).
  */
 class IsValidAvroBinaryTest {
 
@@ -37,41 +37,39 @@ class IsValidAvroBinaryTest {
         }
         """;
 
-    // magic(1) + schemaId(4=27) + avro body for "Maciek"
+    // magic(1) + schemaId(4=27) + avro body for "Maciek" -> payload offset 5
     private static final byte[] CONFLUENT_OK = { 0x00, 0x00, 0x00, 0x00, 0x1B, 0x0C, 0x4D, 0x61, 0x63, 0x69, 0x65, 0x6B };
 
     // CONFLUENT_OK with extra trailing bytes
     private static final byte[] CONFLUENT_TRAILING = { 0x00, 0x00, 0x00, 0x00, 0x1B, 0x0C, 0x4D, 0x61, 0x63, 0x69, 0x65, 0x6B, 0x02, 0x4D };
 
-    // Bare avro body (no Confluent envelope) for "Maciek"
+    // Bare avro body (no envelope) for "Maciek" -> payload offset 0
     private static final byte[] SIMPLE_OK = { 0x0C, 0x4D, 0x61, 0x63, 0x69, 0x65, 0x6B };
 
     @Test
-    void confluent_valid() {
-        assertTrue(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(CONFLUENT_OK), schema(), SerializationForm.CONFLUENT).isSuccess());
+    void valid_at_confluent_offset() {
+        assertTrue(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(CONFLUENT_OK), schema(), 5).isSuccess());
     }
 
     @Test
-    void confluent_trailing_bytes_rejected() {
-        assertFalse(
-            AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(CONFLUENT_TRAILING), schema(), SerializationForm.CONFLUENT).isSuccess()
-        );
+    void trailing_bytes_rejected() {
+        assertFalse(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(CONFLUENT_TRAILING), schema(), 5).isSuccess());
     }
 
     @Test
-    void simple_form_valid_without_envelope() {
-        assertTrue(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(SIMPLE_OK), schema(), SerializationForm.SIMPLE).isSuccess());
+    void valid_at_zero_offset_for_bare_payload() {
+        assertTrue(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(SIMPLE_OK), schema(), 0).isSuccess());
     }
 
     @Test
-    void simple_payload_rejected_when_read_as_confluent() {
-        // First byte is 0x0C (not the 0x00 magic byte) -> rejected in Confluent mode.
-        assertFalse(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(SIMPLE_OK), schema(), SerializationForm.CONFLUENT).isSuccess());
+    void wrong_offset_rejected() {
+        // Decoding the bare body as if it had a 5-byte envelope mis-reads it.
+        assertFalse(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(SIMPLE_OK), schema(), 5).isSuccess());
     }
 
     @Test
-    void backward_compatible_overload_defaults_to_confluent() {
-        assertTrue(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(CONFLUENT_OK), schema()).isSuccess());
+    void offset_past_end_rejected() {
+        assertFalse(AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(SIMPLE_OK), schema(), 100).isSuccess());
     }
 
     private static SchemaImpl schema() {

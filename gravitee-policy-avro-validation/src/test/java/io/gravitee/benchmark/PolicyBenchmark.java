@@ -246,7 +246,7 @@ public class PolicyBenchmark {
 
     @Benchmark
     public void isValidBenchmark() {
-        AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(message), new SchemaImpl(SCHEMA));
+        AvroValidationPolicy.isValidAvroBinary(Buffer.buffer(message), new SchemaImpl(SCHEMA), 5);
     }
 
     @Benchmark

@@ -18,8 +18,10 @@ package io.gravitee.avrovalidation.configuration;
 import io.gravitee.avrovalidation.configuration.schema.SerializationForm;
 import io.gravitee.policy.api.PolicyConfiguration;
 import io.gravitee.validation.configuration.errorhandling.NativeErrorHandling;
+import io.gravitee.validation.kafka.wireformat.WireFormat;
 import io.gravitee.validation.schema.SchemaIdSource;
 import io.gravitee.validation.schema.SchemaSource;
+import io.gravitee.validation.schema.ValidationDepth;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -39,6 +41,22 @@ public class AvroValidationPolicyConfiguration implements PolicyConfiguration {
     private String schemaIdEvalString;
 
     private String schemaVersionEvalString;
+
+    /**
+     * Wire format of the embedded schema id (EMBEDDED_ID source). Defaults to Confluent (magic + 4-byte id).
+     */
+    private WireFormat wireFormat = WireFormat.CONFLUENT_4B;
+
+    /**
+     * Record header carrying the schema id, used when {@code wireFormat = HEADER}.
+     */
+    private String schemaIdHeader;
+
+    /**
+     * How deeply to validate. {@code CONTENT} (default) decodes the payload; {@code SCHEMA_ONLY} only verifies the
+     * embedded id resolves to the topic subject (cheaper, no deserialization). {@code SCHEMA_ONLY} requires EMBEDDED_ID.
+     */
+    private ValidationDepth validationDepth = ValidationDepth.CONTENT;
 
     private NativeErrorHandling nativeErrorHandling;
 
