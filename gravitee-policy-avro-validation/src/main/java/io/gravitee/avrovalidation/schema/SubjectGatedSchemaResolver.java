@@ -25,6 +25,7 @@ import io.gravitee.validation.schema.SchemaContractViolationException;
 import io.gravitee.validation.schema.SchemaNotFoundException;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import java.nio.ByteBuffer;
 import org.apache.avro.SchemaNormalization;
 
 /**
@@ -67,7 +68,7 @@ public class SubjectGatedSchemaResolver implements AvroSchemaResolver {
 
         final String subject = message.topic() + VALUE_SUBJECT_SUFFIX;
 
-        return ResourceBasedSchemaResolver.resolveNativeSchemaId(message)
+        return resolveNativeSchemaId(message)
             .flatMap(producerId ->
                 resource
                     .getSchemaById(producerId)
@@ -99,5 +100,23 @@ public class SubjectGatedSchemaResolver implements AvroSchemaResolver {
         org.apache.avro.Schema parsedWriter = new org.apache.avro.Schema.Parser().parse(writerSchema.getContent());
         org.apache.avro.Schema parsedSubject = new org.apache.avro.Schema.Parser().parse(subjectSchema.getContent());
         return SchemaNormalization.toParsingForm(parsedWriter).equals(SchemaNormalization.toParsingForm(parsedSubject));
+    }
+
+    /**
+     * Extracts the schema id from the Confluent wire format: {@code magic(1) + schemaId(4) + payload}.
+     */
+    private static Maybe<String> resolveNativeSchemaId(KafkaMessage message) {
+        return Maybe.fromCallable(() -> {
+            byte[] bytes = message.content() == null ? null : message.content().getBytes();
+
+            if (bytes == null || bytes.length < 5) {
+                throw new IllegalArgumentException("Message too short for Confluent framing");
+            }
+            if (bytes[0] != 0x00) {
+                throw new IllegalArgumentException("This is not a confluent message");
+            }
+
+            return Integer.toString(ByteBuffer.wrap(bytes, 1, 4).getInt());
+        });
     }
 }

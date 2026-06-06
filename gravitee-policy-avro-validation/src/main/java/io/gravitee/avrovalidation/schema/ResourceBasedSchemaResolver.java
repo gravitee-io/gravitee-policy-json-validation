@@ -22,16 +22,17 @@ import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.resource.api.ResourceManager;
 import io.gravitee.resource.schema_registry.api.Schema;
 import io.gravitee.resource.schema_registry.api.SchemaRegistryResource;
-import io.gravitee.validation.schema.SchemaIdExtractor;
-import io.gravitee.validation.schema.SchemaIdSource;
 import io.gravitee.validation.schema.SchemaReference;
 import io.gravitee.validation.schema.SchemaReferenceExtractor;
 import io.gravitee.validation.schema.SchemaRegistryBasedResolver;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
-import java.nio.ByteBuffer;
 
 /**
+ * EVAL resolver: resolves the schema by an Expression Language mapping that evaluates to a schema subject and version
+ * (e.g. the subject derived from {@code #message.topic}). The schema is fetched by subject from the schema registry
+ * resource — the authority is the operator-configured mapping.
+ *
  * @author GraviteeSource Team
  */
 public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
@@ -41,16 +42,8 @@ public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
     public ResourceBasedSchemaResolver(AvroValidationPolicyConfiguration configuration) {
         this(
             configuration.getSchemaSource().getResourceName(),
-            configuration.getSchemaIdSource(),
             configuration.getSchemaIdEvalString(),
             configuration.getSchemaVersionEvalString()
-        );
-    }
-
-    public ResourceBasedSchemaResolver(String resourceName) {
-        this.delegate = new SchemaRegistryBasedResolver<>(
-            context -> schemaRegistryResource(context, resourceName),
-            (SchemaIdExtractor<KafkaMessageExecutionContext, KafkaMessage>) (context, message) -> resolveNativeSchemaId(message)
         );
     }
 
@@ -60,24 +53,6 @@ public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
             (SchemaReferenceExtractor<KafkaMessageExecutionContext, KafkaMessage>) (context, message) ->
                 resolveSchemaReference(context.getTemplateEngine(message), schemaIdEvalString, schemaVersionEvalString)
         );
-    }
-
-    private ResourceBasedSchemaResolver(
-        String resourceName,
-        SchemaIdSource schemaIdSource,
-        String schemaIdEvalString,
-        String schemaVersionEvalString
-    ) {
-        this.delegate = SchemaIdSource.EVAL.equals(schemaIdSource)
-            ? new SchemaRegistryBasedResolver<>(
-                context -> schemaRegistryResource(context, resourceName),
-                (SchemaReferenceExtractor<KafkaMessageExecutionContext, KafkaMessage>) (context, message) ->
-                    resolveSchemaReference(context.getTemplateEngine(message), schemaIdEvalString, schemaVersionEvalString)
-            )
-            : new SchemaRegistryBasedResolver<>(
-                context -> schemaRegistryResource(context, resourceName),
-                (SchemaIdExtractor<KafkaMessageExecutionContext, KafkaMessage>) (context, message) -> resolveNativeSchemaId(message)
-            );
     }
 
     @Override
@@ -97,20 +72,5 @@ public class ResourceBasedSchemaResolver implements AvroSchemaResolver {
         return templateEngine
             .eval(schemaIdEvalString, String.class)
             .flatMap(id -> templateEngine.eval(schemaVersionEvalString, String.class).map(version -> new SchemaReference(id, version)));
-    }
-
-    static Maybe<String> resolveNativeSchemaId(KafkaMessage message) {
-        return Maybe.fromCallable(() -> {
-            byte[] bytes = message.content() == null ? null : message.content().getBytes();
-
-            if (bytes == null || bytes.length < 5) {
-                throw new IllegalArgumentException("Message too short for Confluent framing");
-            }
-            if (bytes[0] != 0x00) {
-                throw new IllegalArgumentException("This is not a confluent message");
-            }
-
-            return Integer.toString(ByteBuffer.wrap(bytes, 1, 4).getInt());
-        });
     }
 }

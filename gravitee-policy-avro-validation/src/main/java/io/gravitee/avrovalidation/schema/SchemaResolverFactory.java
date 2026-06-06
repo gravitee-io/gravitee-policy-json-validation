@@ -31,9 +31,10 @@ public class SchemaResolverFactory {
         SchemaSource schemaSource = configuration.getSchemaSource();
         SchemaSourceType schemaSourceType = schemaSource.getSourceType();
         return switch (schemaSourceType) {
-            case SCHEMA_REGISTRY_RESOURCE -> SchemaIdSource.NATIVE_GATED.equals(configuration.getSchemaIdSource())
-                ? new SubjectGatedSchemaResolver(configuration)
-                : new ResourceBasedSchemaResolver(configuration);
+            // NATIVE (producer-embedded id) is always gated against the topic subject; EVAL resolves by an EL mapping.
+            case SCHEMA_REGISTRY_RESOURCE -> SchemaIdSource.EVAL.equals(configuration.getSchemaIdSource())
+                ? new ResourceBasedSchemaResolver(configuration)
+                : new SubjectGatedSchemaResolver(configuration);
         };
     }
 }
