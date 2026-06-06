@@ -1,0 +1,14 @@
+{
+    "schemaSource": {
+        "sourceType": "SCHEMA_REGISTRY_RESOURCE",
+        "resourceName": "externalSchemaRegistry"
+    },
+    "schemaIdSource": "FROM_RECORD",
+    "wireFormat": "CONFLUENT_4B",
+    "validationDepth": "CONTENT",
+    "nativeErrorHandling": {
+        "onPublish": {
+            "strategy": "FAIL_WITH_INVALID_RECORD"
+        }
+    }
+}

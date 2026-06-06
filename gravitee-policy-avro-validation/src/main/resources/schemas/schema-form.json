@@ -1,0 +1,186 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "additionalProperties": false,
+    "definitions": {
+        "nativeErrorHandling": {
+            "type": "object",
+            "title": "Error handling strategy",
+            "properties": {
+                "onSubscribe": {
+                    "$ref": "#/definitions/subscribeErrorHandling"
+                },
+                "onPublish": {
+                    "$ref": "#/definitions/publishErrorHandling"
+                }
+            },
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.apiType": ["NATIVE"]
+                    }
+                }
+            }
+        },
+        "subscribeErrorHandling": {
+            "type": "object",
+            "title": "SubscribeErrorHandling",
+            "description": "Error handling for subscribe phase",
+            "oneOf": [
+                {
+                    "title": "Invalidate partition",
+                    "properties": {
+                        "strategy": {
+                            "const": "INVALIDATE_PARTITION"
+                        }
+                    },
+                    "required": ["strategy"]
+                },
+                {
+                    "title": "Add record header",
+                    "properties": {
+                        "strategy": {
+                            "const": "ADD_RECORD_HEADER"
+                        },
+                        "headerName": {
+                            "title": "Record header name",
+                            "description": "Record header name used to flag invalid records",
+                            "type": "string"
+                        },
+                        "headerValue": {
+                            "title": "Record header value",
+                            "description": "Fixed, non-sensitive value written to the header. The raw validation error is not exposed to consumers to avoid leaking payload data. Defaults to a generic marker.",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["strategy", "headerName"]
+                }
+            ],
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.flowPhase": ["SUBSCRIBE"]
+                    }
+                }
+            }
+        },
+        "publishErrorHandling": {
+            "title": "PublishErrorHandling",
+            "type": "object",
+            "description": "Error handling for publish phase",
+            "oneOf": [
+                {
+                    "title": "Fail with invalid record",
+                    "properties": {
+                        "strategy": {
+                            "const": "FAIL_WITH_INVALID_RECORD"
+                        }
+                    },
+                    "required": ["strategy"]
+                },
+                {
+                    "title": "Log only (audit)",
+                    "properties": {
+                        "strategy": {
+                            "const": "LOG"
+                        }
+                    },
+                    "required": ["strategy"]
+                }
+            ],
+            "gioConfig": {
+                "displayIf": {
+                    "$eq": {
+                        "context.flowPhase": ["PUBLISH"]
+                    }
+                }
+            }
+        },
+        "schemaSource": {
+            "title": "Schema source",
+            "type": "object",
+            "properties": {
+                "sourceType": {
+                    "title": "Source type",
+                    "enum": ["SCHEMA_REGISTRY_RESOURCE"],
+                    "default": "SCHEMA_REGISTRY_RESOURCE",
+                    "disabled": "true",
+                    "gioConfig": {
+                        "enumLabelMap": {
+                            "SCHEMA_REGISTRY_RESOURCE": "Schema registry"
+                        }
+                    }
+                },
+                "resourceName": {
+                    "title": "Resource name",
+                    "description": "Name of the schema registry resource",
+                    "type": "string"
+                }
+            },
+            "required": ["sourceType", "resourceName"]
+        }
+    },
+    "properties": {
+        "schemaSource": {
+            "$ref": "#/definitions/schemaSource",
+            "x-schema-form": {
+                "hidden": true
+            }
+        },
+        "nativeErrorHandling": {
+            "$ref": "#/definitions/nativeErrorHandling",
+            "x-schema-form": {
+                "hidden": true
+            }
+        },
+        "schemaIdSource": {
+            "title": "Schema source strategy",
+            "description": "How the schema to validate against is located. FROM_RECORD uses the id carried in the record (enforced against the topic subject). EXPRESSION resolves the schema by an EL mapping (e.g. derived from the topic), ignoring the producer's id.",
+            "type": "string",
+            "enum": ["FROM_RECORD", "EXPRESSION"],
+            "default": "FROM_RECORD",
+            "gioConfig": {
+                "enumLabelMap": {
+                    "FROM_RECORD": "From the record",
+                    "EXPRESSION": "Expression"
+                }
+            }
+        },
+        "wireFormat": {
+            "title": "Wire format",
+            "description": "How the schema id / Avro payload is framed in the record. Determines where the Avro body starts (envelope to skip), and — for FROM_RECORD — where the id is read. NONE = bare Avro (no envelope).",
+            "type": "string",
+            "enum": ["CONFLUENT_4B", "NONE"],
+            "default": "CONFLUENT_4B",
+            "gioConfig": {
+                "enumLabelMap": {
+                    "CONFLUENT_4B": "Confluent (magic + 4-byte id)",
+                    "NONE": "None (bare Avro)"
+                }
+            }
+        },
+        "schemaIdEvalString": {
+            "title": "Schema subject mapping",
+            "description": "EL that evaluates to the schema subject (used when schema source strategy is Expression). E.g. {#message.topic}-value.",
+            "type": "string"
+        },
+        "schemaVersionEvalString": {
+            "title": "Schema version mapping",
+            "description": "EL that evaluates to the schema version (used when schema source strategy is Expression).",
+            "type": "string"
+        },
+        "validationDepth": {
+            "title": "Validation depth",
+            "description": "CONTENT decodes the payload to confirm it conforms. SCHEMA_ONLY only checks that the embedded id resolves to the topic subject (no deserialization, lower latency; requires the Embedded schema id source).",
+            "type": "string",
+            "enum": ["CONTENT", "SCHEMA_ONLY"],
+            "default": "CONTENT",
+            "gioConfig": {
+                "enumLabelMap": {
+                    "CONTENT": "Validate content (decode)",
+                    "SCHEMA_ONLY": "Trust schema only (no decode)"
+                }
+            }
+        }
+    }
+}

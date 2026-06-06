@@ -20,18 +20,19 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.gravitee.policy</groupId>
-    <artifactId>gravitee-policy-json-validation</artifactId>
-    <version>2.2.0-alpha.4</version>
-
-    <name>Gravitee.io APIM - Policy - JSON Validation</name>
-    <description>Validate JSON payloads</description>
-
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
         <version>22.6.0</version>
     </parent>
+
+    <groupId>io.gravitee.policy</groupId>
+    <artifactId>gravitee-policy-validation-parent</artifactId>
+    <version>2.1.0</version>
+    <packaging>pom</packaging>
+
+    <name>Gravitee.io APIM - Policy - Validation Reactor</name>
+    <description>Reactor project for validation policy modules</description>
 
     <properties>
         <gravitee-apim.version>4.6.24</gravitee-apim.version>
@@ -40,16 +41,28 @@
         <gravitee-reactor-message.version>5.0.2</gravitee-reactor-message.version>
         <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
+        <apache-avro.version>1.11.3</apache-avro.version>
+        <kafka-avro-serializer.version>7.7.0</kafka-avro-serializer.version>
+        <jmh.version>1.37</jmh.version>
+        <gravitee-gateway-api.version>3.11.1</gravitee-gateway-api.version>
+        <gravitee-policy-api.version>1.11.0</gravitee-policy-api.version>
+        <jackson.version>2.19.2</jackson.version>
+        <swagger-parser.version>2.1.22</swagger-parser.version>
         <rhino.version>1.7.15.1</rhino.version>
+        <kafka.version>3.7.1</kafka.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <rxjava3.version>3.1.11</rxjava3.version>
+        <lombok.version>1.18.40</lombok.version>
+        <junit-jupiter.version>5.13.4</junit-jupiter.version>
+        <mockito.version>5.19.0</mockito.version>
+        <mockito-inline.version>5.2.0</mockito-inline.version>
+        <assertj-core.version>3.27.4</assertj-core.version>
 
         <maven-plugin-properties.version>1.3.0</maven-plugin-properties.version>
-
-        <publish-folder-path>graviteeio-apim/plugins/policies</publish-folder-path>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Import bom to properly inherit all dependencies -->
             <dependency>
                 <groupId>io.gravitee.apim</groupId>
                 <artifactId>gravitee-apim-bom</artifactId>
@@ -57,203 +70,196 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <dependency>
+                <groupId>io.gravitee.policy</groupId>
+                <artifactId>commons-validation</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.policy</groupId>
+                <artifactId>commons-validation</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+                <classifier>tests</classifier>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.gateway</groupId>
+                <artifactId>gravitee-gateway-api</artifactId>
+                <version>${gravitee-gateway-api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.policy</groupId>
+                <artifactId>gravitee-policy-api</artifactId>
+                <version>${gravitee-policy-api.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.resource</groupId>
+                <artifactId>gravitee-resource-schema-registry-provider-api</artifactId>
+                <version>${gravitee-resource-schema-registry-provider-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.resource</groupId>
+                <artifactId>gravitee-resource-api</artifactId>
+                <version>${gravitee-resource-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.github.java-json-tools</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>${json-schema-validator.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mozilla</groupId>
+                <artifactId>rhino</artifactId>
+                <version>${rhino.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.swagger.parser.v3</groupId>
+                <artifactId>swagger-parser</artifactId>
+                <version>${swagger-parser.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>${mockito-inline.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.apim.gateway</groupId>
+                <artifactId>gravitee-apim-gateway-buffer</artifactId>
+                <version>${gravitee-apim.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.apim.gateway</groupId>
+                <artifactId>gravitee-apim-gateway-tests-sdk</artifactId>
+                <version>${gravitee-apim.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.apim.plugin.endpoint</groupId>
+                <artifactId>gravitee-apim-plugin-endpoint-mock</artifactId>
+                <version>${gravitee-apim.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.apim.plugin.entrypoint</groupId>
+                <artifactId>gravitee-apim-plugin-entrypoint-http-proxy</artifactId>
+                <version>${gravitee-apim.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.gravitee.apim.plugin.endpoint</groupId>
+                <artifactId>gravitee-apim-plugin-endpoint-http-proxy</artifactId>
+                <version>${gravitee-apim.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.graviteesource.entrypoint</groupId>
+                <artifactId>gravitee-entrypoint-http-post</artifactId>
+                <version>${gravitee-entrypoint-http-post.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.graviteesource.reactor</groupId>
+                <artifactId>gravitee-reactor-message</artifactId>
+                <version>${gravitee-reactor-message.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj-core.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex.rxjava3</groupId>
+                <artifactId>rxjava</artifactId>
+                <version>${rxjava3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${apache-avro.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.confluent</groupId>
+                <artifactId>kafka-avro-serializer</artifactId>
+                <version>${kafka-avro-serializer.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <!-- Provided scope -->
-        <dependency>
-            <groupId>io.gravitee.gateway</groupId>
-            <artifactId>gravitee-gateway-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.gravitee.policy</groupId>
-            <artifactId>gravitee-policy-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.gravitee.resource</groupId>
-            <artifactId>gravitee-resource-schema-registry-provider-api</artifactId>
-            <version>${gravitee-resource-schema-registry-provider-api.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.gravitee.resource</groupId>
-            <artifactId>gravitee-resource-api</artifactId>
-            <version>${gravitee-resource-api.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.java-json-tools</groupId>
-            <artifactId>json-schema-validator</artifactId>
-            <version>${json-schema-validator.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>rhino</artifactId>
-                    <groupId>org.mozilla</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mozilla</groupId>
-            <artifactId>rhino</artifactId>
-            <version>${rhino.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Swagger -->
-        <dependency>
-            <groupId>io.swagger.parser.v3</groupId>
-            <artifactId>swagger-parser</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Test scope -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-inline</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.gravitee.apim.gateway</groupId>
-            <artifactId>gravitee-apim-gateway-buffer</artifactId>
-            <version>${gravitee-apim.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.gravitee.apim.gateway</groupId>
-            <artifactId>gravitee-apim-gateway-tests-sdk</artifactId>
-            <version>${gravitee-apim.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.gravitee.apim.plugin.endpoint</groupId>
-            <artifactId>gravitee-apim-plugin-endpoint-mock</artifactId>
-            <version>${gravitee-apim.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.gravitee.apim.plugin.entrypoint</groupId>
-            <artifactId>gravitee-apim-plugin-entrypoint-http-proxy</artifactId>
-            <version>${gravitee-apim.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.gravitee.apim.plugin.endpoint</groupId>
-            <artifactId>gravitee-apim-plugin-endpoint-http-proxy</artifactId>
-            <version>${gravitee-apim.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.graviteesource.entrypoint</groupId>
-            <artifactId>gravitee-entrypoint-http-post</artifactId>
-            <version>${gravitee-entrypoint-http-post.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.graviteesource.reactor</groupId>
-            <artifactId>gravitee-reactor-message</artifactId>
-            <version>${gravitee-reactor-message.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>properties-maven-plugin</artifactId>
-                <version>${maven-plugin-properties.version}</version>
-                <executions>
-                    <execution>
-                        <phase>initialize</phase>
-                        <id>load-plugin-properties</id>
-                        <goals>
-                            <goal>read-project-properties</goal>
-                        </goals>
-                        <configuration>
-                            <files>
-                                <file>${project.basedir}/src/main/resources/plugin.properties</file>
-                            </files>
-                            <quiet>false</quiet>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <descriptors>
-                        <descriptor>src/assembly/policy-assembly.xml</descriptor>
-                    </descriptors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-policy-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-
+    <modules>
+        <module>commons-validation</module>
+        <module>gravitee-policy-json-validation</module>
+        <module>gravitee-policy-avro-validation</module>
+    </modules>
 </project>
