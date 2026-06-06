@@ -31,7 +31,7 @@ public class SchemaResolverFactory {
         SchemaSource schemaSource = configuration.getSchemaSource();
         SchemaSourceType schemaSourceType = schemaSource.getSourceType();
         return switch (schemaSourceType) {
-            // EMBEDDED_ID (producer-embedded id) is always gated against the topic subject; EXPRESSION resolves by an EL mapping.
+            // FROM_RECORD (id carried in the record) is always gated against the topic subject; EXPRESSION resolves by an EL mapping.
             case SCHEMA_REGISTRY_RESOURCE -> SchemaIdSource.EXPRESSION.equals(configuration.getSchemaIdSource())
                 ? new ResourceBasedSchemaResolver(configuration)
                 : new SubjectGatedSchemaResolver(configuration);

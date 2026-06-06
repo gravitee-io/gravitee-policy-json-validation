@@ -22,7 +22,7 @@ public enum ValidationDepth {
     /**
      * Trust the schema reference only: verify the record's embedded schema id resolves to the topic's subject,
      * without deserializing the payload. Cheap (a cached registry lookup, no Avro decode). Only meaningful for the
-     * {@code EMBEDDED_ID} schema source.
+     * {@code FROM_RECORD} schema source.
      */
     SCHEMA_ONLY,
     /**

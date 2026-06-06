@@ -40,7 +40,7 @@ public class AvroValidationPolicyConfiguration implements PolicyConfiguration {
     private String schemaVersionEvalString;
 
     /**
-     * Wire format of the embedded schema id (EMBEDDED_ID source). Defaults to Confluent (magic + 4-byte id).
+     * Wire format of the schema id carried in the record (FROM_RECORD source). Defaults to Confluent (magic + 4-byte id).
      */
     private WireFormat wireFormat = WireFormat.CONFLUENT_4B;
 
@@ -51,7 +51,7 @@ public class AvroValidationPolicyConfiguration implements PolicyConfiguration {
 
     /**
      * How deeply to validate. {@code CONTENT} (default) decodes the payload; {@code SCHEMA_ONLY} only verifies the
-     * embedded id resolves to the topic subject (cheaper, no deserialization). {@code SCHEMA_ONLY} requires EMBEDDED_ID.
+     * embedded id resolves to the topic subject (cheaper, no deserialization). {@code SCHEMA_ONLY} requires FROM_RECORD.
      */
     private ValidationDepth validationDepth = ValidationDepth.CONTENT;
 

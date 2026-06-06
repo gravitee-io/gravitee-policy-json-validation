@@ -16,7 +16,7 @@
 package io.gravitee.validation.kafka.wireformat;
 
 /**
- * How the schema id is framed in a Kafka record (for the {@code EMBEDDED_ID} schema source).
+ * How the schema id is framed in a Kafka record (for the {@code FROM_RECORD} schema source).
  */
 public enum WireFormat {
     /** Confluent wire format: 1 magic byte {@code 0x00} + 4-byte big-endian schema id, then the Avro body. */

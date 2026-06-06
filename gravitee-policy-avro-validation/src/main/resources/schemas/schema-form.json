@@ -135,20 +135,20 @@
         },
         "schemaIdSource": {
             "title": "Schema source strategy",
-            "description": "How the schema to validate against is located. EMBEDDED_ID uses the id carried in the record (enforced against the topic subject). EXPRESSION resolves the schema by an EL mapping (e.g. derived from the topic), ignoring the producer's id.",
+            "description": "How the schema to validate against is located. FROM_RECORD uses the id carried in the record (enforced against the topic subject). EXPRESSION resolves the schema by an EL mapping (e.g. derived from the topic), ignoring the producer's id.",
             "type": "string",
-            "enum": ["EMBEDDED_ID", "EXPRESSION"],
-            "default": "EMBEDDED_ID",
+            "enum": ["FROM_RECORD", "EXPRESSION"],
+            "default": "FROM_RECORD",
             "gioConfig": {
                 "enumLabelMap": {
-                    "EMBEDDED_ID": "Embedded schema id",
+                    "FROM_RECORD": "From the record",
                     "EXPRESSION": "Expression"
                 }
             }
         },
         "wireFormat": {
             "title": "Wire format",
-            "description": "How the schema id / Avro payload is framed in the record. Determines where the Avro body starts (envelope to skip), and — for EMBEDDED_ID — where the id is read. NONE = bare Avro (no envelope).",
+            "description": "How the schema id / Avro payload is framed in the record. Determines where the Avro body starts (envelope to skip), and — for FROM_RECORD — where the id is read. NONE = bare Avro (no envelope).",
             "type": "string",
             "enum": ["CONFLUENT_4B", "APICURIO_8B", "HEADER", "NONE"],
             "default": "CONFLUENT_4B",

@@ -202,7 +202,7 @@ class AvroValidationPolicyTest {
         nativeErrorHandling.setOnSubscribe(subscribeErrorHandling);
 
         var configuration = new AvroValidationPolicyConfiguration();
-        configuration.setSchemaIdSource(SchemaIdSource.EMBEDDED_ID);
+        configuration.setSchemaIdSource(SchemaIdSource.FROM_RECORD);
         configuration.setSchemaSource(schemaSource);
         configuration.setNativeErrorHandling(nativeErrorHandling);
         configuration.setValidationDepth(validationDepth);
