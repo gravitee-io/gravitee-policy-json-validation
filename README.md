@@ -424,6 +424,20 @@ spec:
 
 ## Changelog
 
+### [3.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.4...3.0.0-alpha.1) (2026-06-19)
+
+
+* fix!: correct swapped RESPONSE error keys in HttpSource enum (#78) ([93d0508](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/93d0508b87a124962bb5552b6bdc8b91271e3eb1)), closes [#78](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/78)
+
+
+##### BREAKING CHANGES
+
+* response-scope JSON validation now emits
+JSON_INVALID_RESPONSE_PAYLOAD for payload (schema) failures and
+JSON_INVALID_RESPONSE_FORMAT for parse/format failures. APIs whose
+response templates were authored against the previously-swapped keys
+must update them.
+
 ### [2.2.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.3...2.2.0-alpha.4) (2026-05-29)
 
 
