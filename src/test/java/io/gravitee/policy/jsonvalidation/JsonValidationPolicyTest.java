@@ -193,6 +193,60 @@ class JsonValidationPolicyTest {
         }
     }
 
+    @ExtendWith(MockitoExtension.class)
+    @Nested
+    class OnResponseTest {
+
+        @Mock
+        HttpPlainExecutionContext ctx;
+
+        @Mock
+        HttpPlainResponse response;
+
+        @Captor
+        ArgumentCaptor<io.gravitee.gateway.reactive.api.ExecutionFailure> executionFailureCaptor;
+
+        @BeforeEach
+        void setUp() {
+            var metrics = Metrics.builder().build();
+            lenient().when(ctx.metrics()).thenReturn(metrics);
+            lenient().when(ctx.interruptWith(any())).thenReturn(Completable.error(new MyCustomException()));
+            when(ctx.response()).thenReturn(response);
+        }
+
+        @Test
+        void badBodyNotJson() throws IOException {
+            // Given
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            when(response.body()).thenReturn(Maybe.just(Buffer.buffer("qwerty")));
+
+            // When
+            policy
+                .onResponse(ctx)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_RESPONSE_FORMAT");
+        }
+
+        @Test
+        void badBody() throws IOException {
+            // Given
+            JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
+            when(response.body()).thenReturn(Maybe.just(Buffer.buffer("{\"name2\":\"foo\"}")));
+
+            // When
+            policy
+                .onResponse(ctx)
+                .test()
+                .assertError(throwable -> throwable instanceof MyCustomException);
+
+            verify(ctx).interruptWith(executionFailureCaptor.capture());
+            assertThat(executionFailureCaptor.getValue().key()).isEqualTo("JSON_INVALID_RESPONSE_PAYLOAD");
+        }
+    }
+
     @Nested
     class OnMessageRequestTest {
 
