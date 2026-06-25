@@ -34,6 +34,8 @@ import io.gravitee.policy.api.annotations.OnRequestContent;
 import io.gravitee.policy.api.annotations.OnResponseContent;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSource;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSourceType;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Optional;
@@ -219,7 +221,23 @@ public class JsonValidationPolicyV3 {
 
     @SuppressWarnings("deprecation")
     private JsonNode resolveLegacySchema(Request request, Response response, ExecutionContext executionContext) throws IOException {
-        return JsonLoader.fromString(configuration.getSchema());
+        String schemaContent = configuration.getSchema();
+        // The deprecated `schema` field may be null when the policy is configured with the newer
+        // `schemaSource` form. The V3 engine only supports a static schema; registry sources are V4-only.
+        if (schemaContent == null && configuration.getSchemaSource() != null) {
+            SchemaSource schemaSource = configuration.getSchemaSource();
+            if (schemaSource.getSourceType() == SchemaSourceType.STATIC_SCHEMA) {
+                schemaContent = schemaSource.getStaticSchema();
+            } else {
+                throw new IllegalStateException(
+                    "Schema registry sources are not supported by the V3 execution engine; use a static schema or a V4 API"
+                );
+            }
+        }
+        if (schemaContent == null) {
+            throw new IllegalStateException("No JSON schema configured in the policy");
+        }
+        return JsonLoader.fromString(schemaContent);
     }
 
     private record ErrorParams(String payloadKeyError, String formatKeyError, int errorStatus) {}
