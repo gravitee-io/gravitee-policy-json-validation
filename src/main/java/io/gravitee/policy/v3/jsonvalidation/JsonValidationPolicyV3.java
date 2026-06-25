@@ -220,7 +220,14 @@ public class JsonValidationPolicyV3 {
     }
 
     @SuppressWarnings("deprecation")
+    // The legacy schema is fixed per policy instance; parse it once and reuse it across requests.
+    private volatile JsonNode legacyParsedSchema;
+
     private JsonNode resolveLegacySchema(Request request, Response response, ExecutionContext executionContext) throws IOException {
+        JsonNode cached = legacyParsedSchema;
+        if (cached != null) {
+            return cached;
+        }
         String schemaContent = configuration.getSchema();
         // The deprecated `schema` field may be null when the policy is configured with the newer
         // `schemaSource` form. The V3 engine only supports a static schema; registry sources are V4-only.
@@ -237,7 +244,12 @@ public class JsonValidationPolicyV3 {
         if (schemaContent == null) {
             throw new IllegalStateException("No JSON schema configured in the policy");
         }
-        return JsonLoader.fromString(schemaContent);
+        synchronized (this) {
+            if (legacyParsedSchema == null) {
+                legacyParsedSchema = JsonLoader.fromString(schemaContent);
+            }
+            return legacyParsedSchema;
+        }
     }
 
     private record ErrorParams(String payloadKeyError, String formatKeyError, int errorStatus) {}

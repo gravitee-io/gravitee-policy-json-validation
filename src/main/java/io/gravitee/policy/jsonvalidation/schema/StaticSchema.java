@@ -15,8 +15,11 @@
  */
 package io.gravitee.policy.jsonvalidation.schema;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
 import io.gravitee.resource.schema_registry.api.Reference;
 import io.gravitee.resource.schema_registry.api.Schema;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,10 @@ public class StaticSchema implements Schema {
     private static final String STATIC_SCHEMA_VERSION = "1";
 
     private final String content;
+
+    // Parsed once and reused across requests (the static schema is immutable per policy instance),
+    // mirroring InlineSchemaProvider in the Avro transform policies. Registry schemas are parsed per request.
+    private volatile JsonNode parsedSchema;
 
     @Override
     public String getContent() {
@@ -61,5 +68,19 @@ public class StaticSchema implements Schema {
     @Override
     public Map<String, String> getDependencies() {
         return Map.of();
+    }
+
+    public JsonNode parsedSchema() throws IOException {
+        JsonNode local = parsedSchema;
+        if (local == null) {
+            synchronized (this) {
+                local = parsedSchema;
+                if (local == null) {
+                    local = JsonLoader.fromString(content);
+                    parsedSchema = local;
+                }
+            }
+        }
+        return local;
     }
 }
