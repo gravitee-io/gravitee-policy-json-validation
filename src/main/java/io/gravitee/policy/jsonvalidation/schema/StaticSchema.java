@@ -36,8 +36,7 @@ public class StaticSchema implements Schema {
 
     private final String content;
 
-    // Parsed once and reused across requests (the static schema is immutable per policy instance),
-    // mirroring InlineSchemaProvider in the Avro transform policies. Registry schemas are parsed per request.
+    // Parsed once and reused across requests (the static schema is immutable per policy instance).
     private volatile JsonNode parsedSchema;
 
     @Override
@@ -77,6 +76,9 @@ public class StaticSchema implements Schema {
                 local = parsedSchema;
                 if (local == null) {
                     local = JsonLoader.fromString(content);
+                    if (local == null || local.isMissingNode()) {
+                        throw new IOException("Configured JSON schema is empty or could not be parsed");
+                    }
                     parsedSchema = local;
                 }
             }
