@@ -37,7 +37,7 @@
         <gravitee-apim.version>4.6.24</gravitee-apim.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-resource-schema-registry-provider-api.version>1.0.1</gravitee-resource-schema-registry-provider-api.version>
-        <gravitee-reactor-message.version>5.0.2</gravitee-reactor-message.version>
+        <gravitee-reactor-message.version>11.0.0</gravitee-reactor-message.version>
         <gravitee-entrypoint-http-post.version>2.1.0</gravitee-entrypoint-http-post.version>
         <json-schema-validator.version>2.2.14</json-schema-validator.version>
         <rhino.version>1.7.15.1</rhino.version>
