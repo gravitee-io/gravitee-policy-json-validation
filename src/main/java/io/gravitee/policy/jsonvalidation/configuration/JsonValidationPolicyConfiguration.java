@@ -43,5 +43,7 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     private boolean straightRespondMode;
 
+    private boolean returnDetailedErrorReport;
+
     private NativeErrorHandling nativeErrorHandling;
 }

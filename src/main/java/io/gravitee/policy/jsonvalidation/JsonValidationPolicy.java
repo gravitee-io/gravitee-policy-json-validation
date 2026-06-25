@@ -32,6 +32,7 @@ import io.gravitee.gateway.reactive.api.context.http.HttpBaseExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.http.HttpPlainExecutionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
+import io.gravitee.gateway.reactive.api.message.Message;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.gateway.reactive.api.policy.kafka.KafkaPolicy;
@@ -137,32 +138,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return Completable.defer(() ->
             ctx
                 .request()
-                .onMessage(message ->
-                    schemaResolver
-                        .resolveSchema(ctx, message)
-                        .flatMapMaybe(schema -> {
-                            try {
-                                return validate(
-                                    ctx,
-                                    message.content(),
-                                    schema,
-                                    MESSAGE_REQUEST,
-                                    straightRespond,
-                                    JsonValidationPolicy::interrupt
-                                ).andThen(Maybe.just(message));
-                            } catch (IOException | ProcessingException e) {
-                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage(), e);
-                            }
-                        })
-                        .onErrorResumeNext(th -> {
-                            if (th instanceof JsonValidationException) {
-                                return errorHandling(ctx, th, MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt).andThen(
-                                    Maybe.just(message)
-                                );
-                            }
-                            return Maybe.error(th);
-                        })
-                )
+                .onMessage(message -> validateMessage(ctx, message, MESSAGE_REQUEST))
                 .onErrorResumeNext(th -> {
                     if (th instanceof JsonValidationException) {
                         return errorHandling(ctx, th, MESSAGE_REQUEST, straightRespond, JsonValidationPolicy::interrupt);
@@ -177,32 +153,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         return Completable.defer(() ->
             ctx
                 .response()
-                .onMessage(message ->
-                    schemaResolver
-                        .resolveSchema(ctx, message)
-                        .flatMapMaybe(schema -> {
-                            try {
-                                return validate(
-                                    ctx,
-                                    message.content(),
-                                    schema,
-                                    MESSAGE_RESPONSE,
-                                    straightRespond,
-                                    JsonValidationPolicy::interrupt
-                                ).andThen(Maybe.just(message));
-                            } catch (IOException | ProcessingException e) {
-                                throw new JsonValidationException("Error occurred during json validation " + e.getMessage(), e);
-                            }
-                        })
-                        .onErrorResumeNext(th -> {
-                            if (th instanceof JsonValidationException) {
-                                return errorHandling(ctx, th, MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt).andThen(
-                                    Maybe.just(message)
-                                );
-                            }
-                            return Maybe.error(th);
-                        })
-                )
+                .onMessage(message -> validateMessage(ctx, message, MESSAGE_RESPONSE))
                 .onErrorResumeNext(th -> {
                     if (th instanceof JsonValidationException) {
                         return errorHandling(ctx, th, MESSAGE_RESPONSE, straightRespond, JsonValidationPolicy::interrupt);
@@ -240,6 +191,26 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         });
     }
 
+    private Maybe<Message> validateMessage(HttpMessageExecutionContext ctx, Message message, HttpSource source) {
+        return schemaResolver
+            .resolveSchema(ctx, message)
+            .flatMapMaybe(schema -> {
+                try {
+                    return validate(ctx, message.content(), schema, source, straightRespond, JsonValidationPolicy::interrupt).andThen(
+                        Maybe.just(message)
+                    );
+                } catch (IOException | ProcessingException e) {
+                    throw new JsonValidationException("Error occurred during json validation " + e.getMessage(), e);
+                }
+            })
+            .onErrorResumeNext(th -> {
+                if (th instanceof JsonValidationException) {
+                    return errorHandling(ctx, th, source, straightRespond, JsonValidationPolicy::interrupt).andThen(Maybe.just(message));
+                }
+                return Maybe.error(th);
+            });
+    }
+
     private <T extends HttpBaseExecutionContext> Completable validate(
         T ctx,
         Buffer buffer,
@@ -248,13 +219,28 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         boolean straightMode,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) throws IOException, ProcessingException {
-        var report = validatePayload(buffer, schema);
-        if (!report.isSuccess()) {
-            log.debug("Invalid body '{}'", report);
+        var parsedSchema = JsonLoader.fromString(schema.getContent());
+        var jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
+
+        var report = validatePayload(parsedSchema, jsonNode);
+        if (report.isSuccess()) {
+            return Completable.complete();
         }
-        return report.isSuccess()
-            ? Completable.complete()
-            : errorHandling(ctx, report.toString(), source.status, source.getPayloadKey(), straightMode, interrupt);
+        log.debug("Invalid body '{}'", report);
+
+        // straightMode is only ever true for the HTTP RESPONSE scope (configuration.isStraightRespondMode())
+        // and the message scopes (straightRespond field); REQUEST always passes false, so this guard
+        // cannot suppress validation detail for the request scope.
+        String detailedMessage = null;
+        if (configuration.isReturnDetailedErrorReport() && !straightMode) {
+            try {
+                detailedMessage = buildDetailedMessage(parsedSchema, jsonNode).orElse(null);
+            } catch (RuntimeException ex) {
+                log.error("Unexpected error during JSON validation", ex);
+            }
+        }
+
+        return errorHandling(ctx, report.toString(), source.status, source.getPayloadKey(), straightMode, detailedMessage, interrupt);
     }
 
     private <T extends KafkaMessageExecutionContext> Completable validate(
@@ -280,8 +266,12 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
 
     private ProcessingReport validatePayload(Buffer buffer, Schema schema) throws IOException, ProcessingException {
         JsonNode parsedSchema = JsonLoader.fromString(schema.getContent());
-
         JsonNode jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
+        return validatePayload(parsedSchema, jsonNode);
+    }
+
+    // callers always supply pre-parsed nodes — validate() and validatePayload(Buffer,Schema) handle Buffer→JsonNode conversion
+    private ProcessingReport validatePayload(JsonNode parsedSchema, JsonNode jsonNode) throws ProcessingException {
         return configuration.isValidateUnchecked()
             ? validator.validateUnchecked(parsedSchema, jsonNode)
             : validator.validate(parsedSchema, jsonNode);
@@ -303,7 +293,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         String key = (th instanceof ProcessingException || th.getCause() instanceof ProcessingException)
             ? source.getPayloadKey()
             : source.getFormatKey();
-        return errorHandling(ctx, th.getMessage(), source.status, key, straightMode, interrupt);
+        return errorHandling(ctx, th.getMessage(), source.status, key, straightMode, null, interrupt);
     }
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
@@ -312,14 +302,17 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         int statusCode,
         String key,
         boolean straightMode,
+        String detailedMessage,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) {
         ctx.metrics().setErrorMessage(th);
-        return straightMode
-            ? Completable.complete()
-            : errorMessage(ctx, statusCode).flatMapCompletable(msg ->
-                interrupt.apply(ctx, new ExecutionFailure(statusCode).contentType(MediaType.APPLICATION_JSON).key(key).message(msg))
-            );
+        if (straightMode) {
+            return Completable.complete();
+        }
+        var message = detailedMessage != null ? Maybe.just(detailedMessage) : errorMessage(ctx, statusCode);
+        return message.flatMapCompletable(msg ->
+            interrupt.apply(ctx, new ExecutionFailure(statusCode).contentType(MediaType.TEXT_PLAIN).key(key).message(msg))
+        );
     }
 
     private <T extends KafkaMessageExecutionContext> Completable errorHandling(
@@ -334,7 +327,13 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     private Maybe<String> errorMessage(HttpBaseExecutionContext executionContext, int httpStatusCode) {
         String defaultMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
         return configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()
-            ? executionContext.getTemplateEngine().eval(configuration.getErrorMessage(), String.class)
+            ? executionContext
+                .getTemplateEngine()
+                .eval(configuration.getErrorMessage(), String.class)
+                .onErrorResumeNext(e -> {
+                    log.warn("Failed to evaluate error message expression, falling back to default message: {}", e.getMessage());
+                    return Maybe.just(defaultMessage);
+                })
             : Maybe.just(defaultMessage);
     }
 
