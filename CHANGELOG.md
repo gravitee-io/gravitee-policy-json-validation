@@ -1,3 +1,10 @@
+# [3.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/3.0.0-alpha.1...3.0.0-alpha.2) (2026-06-25)
+
+
+### Features
+
+* add returnDetailedErrorReport flag to surface per-violation detail ([#79](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/79)) ([eb03417](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/eb03417999bab1d78fedfde0407538fa16233104))
+
 # [3.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0-alpha.4...3.0.0-alpha.1) (2026-06-19)
 
 
