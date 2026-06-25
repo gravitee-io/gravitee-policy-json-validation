@@ -426,6 +426,38 @@ spec:
 
 ## Changelog
 
+### [3.0.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.4...3.0.0) (2026-06-25)
+
+
+##### Bug Fixes
+
+* handle schemaSource static schema in the V3 legacy path ([50140c4](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/50140c48dac646eeee3de8439017100ce50fb8c9))
+* Improve JSON validation error handling ([a009c99](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/a009c9977c929aebdce026feee2ecf8217778a25))
+
+
+* fix!: correct swapped RESPONSE error keys in HttpSource enum (#78) ([bfcba5d](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/bfcba5d9b7196af4e130ba1ec05282a5b77718a8)), closes [#78](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/78)
+
+
+##### Features
+
+* add returnDetailedErrorReport flag to surface per-violation detail ([#79](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/79)) ([a78f495](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/a78f4958162fbc21bca40df36932fa6905e420ba))
+* added support for kafka gateway protocol ([3aa89b2](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/3aa89b23109ff6fcb026e1fb059f5c0a42f2d7cf))
+* integration with schema registry resources ([baf5d9a](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/baf5d9ae41d48d2ca6ccf941750c6a235827d4da))
+
+
+##### Performance Improvements
+
+* parse static JSON schema once instead of on every request ([#81](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/81)) ([761f662](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/761f662e55bdfcd1b7c930cd6b118999f84a6010))
+
+
+##### BREAKING CHANGES
+
+* response-scope JSON validation now emits
+JSON_INVALID_RESPONSE_PAYLOAD for payload (schema) failures and
+JSON_INVALID_RESPONSE_FORMAT for parse/format failures. APIs whose
+response templates were authored against the previously-swapped keys
+must update them.
+
 #### [2.1.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.3...2.1.4) (2026-05-29)
 
 
