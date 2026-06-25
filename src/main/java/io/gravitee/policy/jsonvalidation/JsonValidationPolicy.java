@@ -42,6 +42,7 @@ import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeError
 import io.gravitee.policy.jsonvalidation.handler.ValidationResultHandler;
 import io.gravitee.policy.jsonvalidation.handler.kafka.KafkaValidationResultHandler;
 import io.gravitee.policy.jsonvalidation.schema.SchemaResolver;
+import io.gravitee.policy.jsonvalidation.schema.StaticSchema;
 import io.gravitee.policy.jsonvalidation.schema.ValidatableSchemaResolver;
 import io.gravitee.policy.v3.jsonvalidation.JsonValidationPolicyV3;
 import io.gravitee.resource.schema_registry.api.Schema;
@@ -219,7 +220,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         boolean straightMode,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) throws IOException, ProcessingException {
-        var parsedSchema = JsonLoader.fromString(schema.getContent());
+        var parsedSchema = parseSchema(schema);
         var jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
 
         var report = validatePayload(parsedSchema, jsonNode);
@@ -265,9 +266,18 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
     }
 
     private ProcessingReport validatePayload(Buffer buffer, Schema schema) throws IOException, ProcessingException {
-        JsonNode parsedSchema = JsonLoader.fromString(schema.getContent());
+        JsonNode parsedSchema = parseSchema(schema);
         JsonNode jsonNode = JSON_MAPPER.readTree(buffer.getBytes());
         return validatePayload(parsedSchema, jsonNode);
+    }
+
+    // Parse the schema, reusing the parsed JsonNode for static schemas (parsed once, immutable per policy
+    // instance). Registry-resolved schemas are parsed per request since their content may change.
+    private static JsonNode parseSchema(Schema schema) throws IOException {
+        if (schema instanceof StaticSchema staticSchema) {
+            return staticSchema.parsedSchema();
+        }
+        return JsonLoader.fromString(schema.getContent());
     }
 
     // callers always supply pre-parsed nodes — validate() and validatePayload(Buffer,Schema) handle Buffer→JsonNode conversion

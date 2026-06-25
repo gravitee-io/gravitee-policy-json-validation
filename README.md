@@ -426,6 +426,34 @@ spec:
 
 ## Changelog
 
+#### [2.1.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.3...2.1.4) (2026-05-29)
+
+
+##### Bug Fixes
+
+* force version of rhino ([aeaac0e](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/aeaac0e63b4b0eff03d53d748824916029256939))
+
+#### [2.1.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.2...2.1.3) (2026-05-29)
+
+
+##### Bug Fixes
+
+* **deps:** change rhino scope ([#72](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/72)) ([95662f0](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/95662f0cc0fee1eddb2e88027b9710293c6014db))
+
+#### [2.1.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.1...2.1.2) (2026-05-21)
+
+
+##### Bug Fixes
+
+* **deps:** Excluding jackson-core deps to fix security vulnerabilities ([67e75dd](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/67e75dd12d15e8d97d736778ae34c3271a6298b0))
+
+#### [2.1.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.0...2.1.1) (2026-03-11)
+
+
+##### Bug Fixes
+
+* improve JSON validation error handling ([67306e0](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/67306e07eac0aeef38c99569b735cecd922de200))
+
 ### [2.1.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.0.3...2.1.0) (2025-11-13)
 
 
