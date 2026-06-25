@@ -1,0 +1,76 @@
+{
+    "id": "v4-straight-respond-flag-off",
+    "name": "v4-straight-respond-flag-off",
+    "apiVersion": "1.0",
+    "definitionVersion": "4.0.0",
+    "type": "proxy",
+    "analytics": {
+        "enabled": true
+    },
+    "description": "response-phase straightRespondMode with returnDetailedErrorReport off",
+    "listeners": [
+        {
+            "type": "http",
+            "paths": [
+                {
+                    "path": "/straight-respond-flag-off"
+                }
+            ],
+            "entrypoints": [
+                {
+                    "type": "http-proxy"
+                }
+            ]
+        }
+    ],
+    "endpointGroups": [
+        {
+            "name": "default",
+            "type": "http-proxy",
+            "endpoints": [
+                {
+                    "name": "default",
+                    "type": "http-proxy",
+                    "weight": 1,
+                    "inheritConfiguration": false,
+                    "configuration": {
+                        "target": "http://localhost:8080/team"
+                    }
+                }
+            ]
+        }
+    ],
+    "flows": [
+        {
+            "name": "flow-1",
+            "enabled": true,
+            "selectors": [
+                {
+                    "type": "http",
+                    "path": "/",
+                    "pathOperator": "STARTS_WITH"
+                }
+            ],
+            "request": [],
+            "response": [
+                {
+                    "name": "Json validation response",
+                    "description": "",
+                    "enabled": true,
+                    "policy": "json-validation",
+                    "configuration": {
+                        "scope": "RESPONSE_CONTENT",
+                        "straightRespondMode": true,
+                        "returnDetailedErrorReport": false,
+                        "schemaSource": {
+                            "sourceType": "STATIC_SCHEMA",
+                            "staticSchema": "{\n  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"name\": { \"type\": \"string\" },\n    \"age\": { \"type\": \"integer\" },\n    \"email\": { \"type\": \"string\", \"minLength\": 5 }\n  },\n  \"required\": [\"name\"]\n}"
+                        }
+                    }
+                }
+            ],
+            "subscribe": [],
+            "publish": []
+        }
+    ]
+}

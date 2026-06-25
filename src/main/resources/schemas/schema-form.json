@@ -214,8 +214,14 @@
         },
         "straightRespondMode": {
             "title": "Straight respond mode",
-            "description": "Only for RESPONSE scope. Straight respond mode means that responses failed to validate still will be sent to user without replacement. Validation failures messages are still being written to the metrics for further inspection.",
+            "description": "Only for RESPONSE scope. When enabled, responses that fail validation are still forwarded to the client unchanged. Validation failures are recorded in the metrics for further inspection.",
             "type": "boolean"
+        },
+        "returnDetailedErrorReport": {
+            "title": "Return detailed error report",
+            "description": "Return per-field JSON Schema validation detail in the error response instead of the generic error message. Warning: exposes schema structure to callers — disable in production unless callers are trusted.",
+            "type": "boolean",
+            "default": false
         }
     }
 }
