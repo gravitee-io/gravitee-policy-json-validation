@@ -1,0 +1,5 @@
+.claude/
+.m2-repo/
+.worktrees/
+target/
+node_modules/

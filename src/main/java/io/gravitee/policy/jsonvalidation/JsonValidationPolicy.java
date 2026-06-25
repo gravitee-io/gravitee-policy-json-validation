@@ -150,12 +150,24 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         var report = configuration.isValidateUnchecked()
             ? validator.validateUnchecked(schema, jsonNode)
             : validator.validate(schema, jsonNode);
-        if (!report.isSuccess()) {
-            log.debug("Invalid body '{}'", report);
+        if (report.isSuccess()) {
+            return Completable.complete();
         }
-        return report.isSuccess()
-            ? Completable.complete()
-            : errorHandling(ctx, report.toString(), source.status, source.getPayloadKey(), straightMode, interrupt);
+        log.debug("Invalid body '{}'", report);
+
+        // straightMode is only ever true for the HTTP RESPONSE scope (configuration.isStraightRespondMode())
+        // and the message scopes (straightRespond field); REQUEST always passes false, so this guard
+        // cannot suppress validation detail for the request scope.
+        String detailedMessage = null;
+        if (configuration.isReturnDetailedErrorReport() && !straightMode) {
+            try {
+                detailedMessage = buildDetailedMessage(schema, jsonNode).orElse(null);
+            } catch (RuntimeException ex) {
+                log.error("Unexpected error during JSON validation", ex);
+            }
+        }
+
+        return errorHandling(ctx, report.toString(), source.status, source.getPayloadKey(), straightMode, detailedMessage, interrupt);
     }
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
@@ -169,7 +181,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             ? source.getPayloadKey()
             : source.getFormatKey();
         String message = th.getMessage() != null ? th.getMessage() : "Unknown error";
-        return errorHandling(ctx, message, source.status, key, straightMode, interrupt);
+        return errorHandling(ctx, message, source.status, key, straightMode, null, interrupt);
     }
 
     private <T extends HttpBaseExecutionContext> Completable errorHandling(
@@ -178,20 +190,29 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         int statusCode,
         String key,
         boolean straightMode,
+        String detailedMessage,
         BiFunction<T, ExecutionFailure, Completable> interrupt
     ) {
         ctx.metrics().setErrorMessage(th);
-        return straightMode
-            ? Completable.complete()
-            : errorMessage(ctx, statusCode).flatMapCompletable(msg ->
-                interrupt.apply(ctx, new ExecutionFailure(statusCode).contentType(MediaType.APPLICATION_JSON).key(key).message(msg))
-            );
+        if (straightMode) {
+            return Completable.complete();
+        }
+        var message = detailedMessage != null ? Maybe.just(detailedMessage) : errorMessage(ctx, statusCode);
+        return message.flatMapCompletable(msg ->
+            interrupt.apply(ctx, new ExecutionFailure(statusCode).contentType(MediaType.TEXT_PLAIN).key(key).message(msg))
+        );
     }
 
     private Maybe<String> errorMessage(HttpBaseExecutionContext executionContext, int httpStatusCode) {
         String defaultMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
         return configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()
-            ? executionContext.getTemplateEngine().eval(configuration.getErrorMessage(), String.class)
+            ? executionContext
+                .getTemplateEngine()
+                .eval(configuration.getErrorMessage(), String.class)
+                .onErrorResumeNext(e -> {
+                    log.warn("Failed to evaluate error message expression, falling back to default message: {}", e.getMessage());
+                    return Maybe.just(defaultMessage);
+                })
             : Maybe.just(defaultMessage);
     }
 

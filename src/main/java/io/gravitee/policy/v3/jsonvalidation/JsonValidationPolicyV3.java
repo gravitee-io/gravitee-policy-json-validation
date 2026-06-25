@@ -18,6 +18,7 @@ package io.gravitee.policy.v3.jsonvalidation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
+import com.github.fge.jsonschema.core.report.ProcessingMessage;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import com.github.fge.jsonschema.main.JsonValidator;
@@ -33,6 +34,8 @@ import io.gravitee.policy.api.annotations.OnRequestContent;
 import io.gravitee.policy.api.annotations.OnResponseContent;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
+import java.util.LinkedHashSet;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +127,10 @@ public class JsonValidationPolicyV3 {
                 if (!report.isSuccess()) {
                     request.metrics().setMessage(report.toString());
                     if (!straightMode) {
-                        sendErrorResponse(errorParams.payloadKeyError(), executionContext, policyChain, errorParams.errorStatus());
+                        String detail = configuration.isReturnDetailedErrorReport()
+                            ? buildDetailedMessage(schema, content).orElse(null)
+                            : null;
+                        sendErrorResponse(errorParams.payloadKeyError(), executionContext, policyChain, errorParams.errorStatus(), detail);
                     } else {
                         // In Straight Respond Mode, send the response to the user without replacement.
                         writeBufferAndEnd.run();
@@ -135,14 +141,17 @@ public class JsonValidationPolicyV3 {
             } catch (ProcessingException ex) {
                 request.metrics().setMessage(ex.toString());
                 if (!straightMode) {
-                    sendErrorResponse(errorParams.payloadKeyError(), executionContext, policyChain, errorParams.errorStatus());
+                    sendErrorResponse(errorParams.payloadKeyError(), executionContext, policyChain, errorParams.errorStatus(), null);
                 } else {
                     writeBufferAndEnd.run();
                 }
             } catch (Exception ex) {
+                if (ex instanceof RuntimeException) {
+                    logger.error("Unexpected error during JSON validation", ex);
+                }
                 request.metrics().setMessage(ex.toString());
                 if (!straightMode) {
-                    sendErrorResponse(errorParams.formatKeyError(), executionContext, policyChain, errorParams.errorStatus());
+                    sendErrorResponse(errorParams.formatKeyError(), executionContext, policyChain, errorParams.errorStatus(), null);
                 } else {
                     writeBufferAndEnd.run();
                 }
@@ -158,17 +167,59 @@ public class JsonValidationPolicyV3 {
         }
     }
 
-    private void sendErrorResponse(String key, ExecutionContext executionContext, PolicyChain policyChain, int httpStatusCode) {
-        if (configuration.getErrorMessage() != null && !configuration.getErrorMessage().isEmpty()) {
+    private void sendErrorResponse(
+        String key,
+        ExecutionContext executionContext,
+        PolicyChain policyChain,
+        int httpStatusCode,
+        String detail
+    ) {
+        String configuredMessage = configuration.getErrorMessage();
+        boolean hasConfiguredMessage = configuredMessage != null && !configuredMessage.isEmpty();
+        if (detail != null) {
+            policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, detail, MediaType.TEXT_PLAIN));
+        } else if (hasConfiguredMessage) {
             executionContext
                 .getTemplateEngine()
-                .eval(configuration.getErrorMessage(), String.class)
-                .subscribe(errorMessage ->
-                    policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.APPLICATION_JSON))
+                .eval(configuredMessage, String.class)
+                .subscribe(
+                    errorMessage ->
+                        policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.TEXT_PLAIN)),
+                    throwable -> {
+                        logger.warn("Error message evaluation failed: {}", throwable.getMessage(), throwable);
+                        String fallbackMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
+                        policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, fallbackMessage, MediaType.TEXT_PLAIN));
+                    }
                 );
         } else {
             String errorMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
             policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.TEXT_PLAIN));
+        }
+    }
+
+    protected Optional<String> buildDetailedMessage(JsonNode schema, JsonNode content) {
+        try {
+            ProcessingReport deepReport = configuration.isValidateUnchecked()
+                ? validator.validateUnchecked(schema, content, true)
+                : validator.validate(schema, content, true);
+
+            var details = new LinkedHashSet<String>();
+            int count = 0;
+            for (ProcessingMessage processingMessage : deepReport) {
+                if (count >= 50) {
+                    break;
+                }
+                var json = processingMessage.asJson();
+                var pointer = json.path("instance").path("pointer").asText();
+                var label = pointer.isBlank() ? "(root)" : pointer;
+                var message = json.path("message").asText();
+                details.add(label + " — " + message);
+                count++;
+            }
+            return Optional.of(String.join("; ", details)).filter(s -> !s.isBlank());
+        } catch (ProcessingException ex) {
+            logger.warn("Detailed validation report generation failed: {}", ex.getMessage(), ex);
+            return Optional.empty();
         }
     }
 
