@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.4...2.2.0) (2026-07-10)
+
+
+### Features
+
+* add returnDetailedErrorReport flag to surface per-violation detail ([#83](https://github.com/gravitee-io/gravitee-policy-json-validation/issues/83)) ([4dfebeb](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/4dfebeb23bf8f8afa94f3f9f871106fd963d70ee))
+
 ## [2.1.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.3...2.1.4) (2026-05-29)
 
 
