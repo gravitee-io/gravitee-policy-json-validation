@@ -32,6 +32,8 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     private boolean straightRespondMode;
 
+    private boolean returnDetailedErrorReport;
+
     public PolicyScope getScope() {
         return scope;
     }
@@ -78,5 +80,13 @@ public class JsonValidationPolicyConfiguration implements PolicyConfiguration {
 
     public void setStraightRespondMode(boolean straightRespondMode) {
         this.straightRespondMode = straightRespondMode;
+    }
+
+    public boolean isReturnDetailedErrorReport() {
+        return returnDetailedErrorReport;
+    }
+
+    public void setReturnDetailedErrorReport(boolean returnDetailedErrorReport) {
+        this.returnDetailedErrorReport = returnDetailedErrorReport;
     }
 }
