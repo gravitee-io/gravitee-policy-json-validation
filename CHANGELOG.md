@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.2.0...2.2.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* **deps:** move to gravitee-reactor-message 5.0.3 ([a26bdff](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/a26bdff5d7d16689a1e19cdde9ea2df046d3fe74))
+
 # [2.2.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/2.1.4...2.2.0) (2026-07-10)
 
 
