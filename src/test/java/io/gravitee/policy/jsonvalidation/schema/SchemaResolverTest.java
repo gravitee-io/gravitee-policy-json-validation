@@ -16,6 +16,7 @@
 package io.gravitee.policy.jsonvalidation.schema;
 
 import static io.gravitee.policy.jsonvalidation.schema.SchemaResolverFactory.createSchemaResolver;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -256,6 +257,81 @@ public class SchemaResolverTest {
 
             createSchemaResolver(configuration)
                 .resolveSchema(ctx, kafkaMessage)
+                .test()
+                .assertComplete()
+                .assertValue(schema -> Objects.equals(JsonLoader.fromString(schema.getContent()), referenceSchema));
+        }
+    }
+
+    /**
+     * A schema source that holds no schema (for example one created through the management API or an import)
+     * must not shadow a populated legacy {@code schema}.
+     */
+    @SuppressWarnings("deprecation")
+    @ExtendWith(MockitoExtension.class)
+    @Nested
+    class EmptySchemaSourceFallsBackToLegacySchemaTest {
+
+        @Mock
+        JsonValidationPolicyConfiguration configuration;
+
+        private void assertResolvesLegacySchema() throws IOException {
+            JsonNode referenceSchema = JsonLoader.fromString(JSON_SCHEMA);
+            createSchemaResolver(configuration)
+                .resolveSchema(mock(HttpPlainExecutionContext.class))
+                .test()
+                .assertComplete()
+                .assertValue(schema -> Objects.equals(JsonLoader.fromString(schema.getContent()), referenceSchema));
+        }
+
+        @Test
+        void shouldFallBackWhenStaticSchemaIsEmpty() throws IOException {
+            when(configuration.getSchema()).thenReturn(JSON_SCHEMA);
+            when(configuration.getSchemaSource()).thenReturn(
+                SchemaSource.builder().sourceType(SchemaSourceType.STATIC_SCHEMA).staticSchema("").build()
+            );
+
+            assertResolvesLegacySchema();
+        }
+
+        @Test
+        void shouldFallBackWhenStaticSchemaIsBlank() throws IOException {
+            when(configuration.getSchema()).thenReturn(JSON_SCHEMA);
+            when(configuration.getSchemaSource()).thenReturn(
+                SchemaSource.builder().sourceType(SchemaSourceType.STATIC_SCHEMA).staticSchema("   \n  ").build()
+            );
+
+            assertResolvesLegacySchema();
+        }
+
+        @Test
+        void shouldFallBackWhenStaticSchemaIsNull() throws IOException {
+            when(configuration.getSchema()).thenReturn(JSON_SCHEMA);
+            when(configuration.getSchemaSource()).thenReturn(SchemaSource.builder().sourceType(SchemaSourceType.STATIC_SCHEMA).build());
+
+            assertResolvesLegacySchema();
+        }
+
+        @Test
+        void shouldFallBackWhenSourceTypeIsMissing() throws IOException {
+            when(configuration.getSchema()).thenReturn(JSON_SCHEMA);
+            when(configuration.getSchemaSource()).thenReturn(SchemaSource.builder().staticSchema("").build());
+
+            assertResolvesLegacySchema();
+        }
+
+        // Both fields filled is the configuration recommended for mixed-version estates: the source must win, so the
+        // legacy field is stubbed with a schema that would give a different result if it were picked.
+        @Test
+        void shouldPreferTheSchemaSourceOverALegacySchemaThatIsAlsoFilled() throws IOException {
+            JsonNode referenceSchema = JsonLoader.fromString(JSON_SCHEMA);
+            lenient().when(configuration.getSchema()).thenReturn("{\"title\": \"Legacy\", \"type\": \"array\"}");
+            when(configuration.getSchemaSource()).thenReturn(
+                SchemaSource.builder().sourceType(SchemaSourceType.STATIC_SCHEMA).staticSchema(JSON_SCHEMA).build()
+            );
+
+            createSchemaResolver(configuration)
+                .resolveSchema(mock(HttpPlainExecutionContext.class))
                 .test()
                 .assertComplete()
                 .assertValue(schema -> Objects.equals(JsonLoader.fromString(schema.getContent()), referenceSchema));
