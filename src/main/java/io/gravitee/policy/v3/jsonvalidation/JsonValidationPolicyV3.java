@@ -230,8 +230,9 @@ public class JsonValidationPolicyV3 {
         }
         String schemaContent = configuration.getSchema();
         // The deprecated `schema` field may be null when the policy is configured with the newer
-        // `schemaSource` form. The V3 engine only supports a static schema; registry sources are V4-only.
-        if (schemaContent == null && configuration.getSchemaSource() != null) {
+        // `schemaSource` form, or blank when a console saved a cleared editor. The V3 engine only supports a static
+        // schema; registry sources are V4-only.
+        if ((schemaContent == null || schemaContent.isBlank()) && configuration.getSchemaSource() != null) {
             SchemaSource schemaSource = configuration.getSchemaSource();
             if (schemaSource.getSourceType() == SchemaSourceType.STATIC_SCHEMA) {
                 schemaContent = schemaSource.getStaticSchema();

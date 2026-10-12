@@ -41,6 +41,8 @@ import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.PolicyResult;
 import io.gravitee.policy.jsonvalidation.configuration.JsonValidationPolicyConfiguration;
 import io.gravitee.policy.jsonvalidation.configuration.PolicyScope;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSource;
+import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSourceType;
 import io.gravitee.reporter.api.http.Metrics;
 import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
@@ -780,6 +782,29 @@ public class JsonValidationPolicyV3Test {
         final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = new AtomicBoolean(false);
         readWriteStream.endHandler(__ -> hasCalledEndOnReadWriteStreamParentClass.set(true));
         return hasCalledEndOnReadWriteStreamParentClass;
+    }
+
+    @Nested
+    class LegacySchemaFieldTest {
+
+        // A console saves a cleared code editor as an empty string, not as an absent property.
+        @ParameterizedTest
+        @ValueSource(strings = { "", "   ", "\n" })
+        void shouldUseSchemaSourceWhenLegacySchemaIsBlank(String blankLegacySchema) throws IOException {
+            when(configuration.getScope()).thenReturn(PolicyScope.REQUEST_CONTENT);
+            when(configuration.getSchema()).thenReturn(blankLegacySchema);
+            when(configuration.getSchemaSource()).thenReturn(
+                SchemaSource.builder().sourceType(SchemaSourceType.STATIC_SCHEMA).staticSchema(JSON_SCHEMA).build()
+            );
+            JsonValidationPolicyV3 policy = new JsonValidationPolicyV3(configuration);
+
+            var readWriteStream = policy.onRequestContent(mockRequest, mockResponse, mockExecutionContext, mockPolicychain);
+            final AtomicBoolean hasCalledEndOnReadWriteStreamParentClass = spyEndHandler(readWriteStream);
+            readWriteStream.write(factory.buffer("{\"name\":\"foo\"}"));
+            readWriteStream.end();
+
+            assertThat(hasCalledEndOnReadWriteStreamParentClass).isTrue();
+        }
     }
 
     @Nested

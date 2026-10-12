@@ -27,7 +27,7 @@ public class SchemaResolverFactory {
     public static SchemaResolver createSchemaResolver(JsonValidationPolicyConfiguration configuration) {
         SchemaSource schemaSource = configuration.getSchemaSource();
 
-        if (schemaSource == null) {
+        if (carriesNoSchema(schemaSource)) {
             return legacySchemaResolver(configuration);
         }
 
@@ -40,6 +40,22 @@ public class SchemaResolverFactory {
                 schemaSource.getSchemaMapping()
             );
         };
+    }
+
+    /**
+     * A schema source can carry no schema at all, for instance when a configuration is created through the
+     * management API, GitOps or an import with an empty static schema. It must not shadow a populated deprecated
+     * {@code schema} field: the empty string cannot be parsed, the policy cannot be instantiated, and the
+     * gateway then runs the API without it.
+     */
+    private static boolean carriesNoSchema(SchemaSource schemaSource) {
+        if (schemaSource == null || schemaSource.getSourceType() == null) {
+            return true;
+        }
+        return (
+            schemaSource.getSourceType() == SchemaSourceType.STATIC_SCHEMA &&
+            (schemaSource.getStaticSchema() == null || schemaSource.getStaticSchema().isBlank())
+        );
     }
 
     @SuppressWarnings("deprecation")

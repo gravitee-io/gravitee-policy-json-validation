@@ -168,10 +168,9 @@
             }
         },
         "schema": {
-            "title": "JSON Schema",
-            "description": "JSON Schema used for request payload validation",
+            "title": "JSON Schema (legacy)",
+            "description": "Legacy field. Gateways older than 4.12 read only this field and ignore Schema source. If some of your gateways are older than 4.12, fill it with the same schema as Schema source and keep the two identical: when both are filled, gateways and engines do not agree on which one wins. Otherwise leave it empty and use Schema source.",
             "type": "string",
-            "deprecated": true,
             "x-schema-form": {
                 "type": "codemirror",
                 "codemirrorOptions": {
