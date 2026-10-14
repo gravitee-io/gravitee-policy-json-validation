@@ -1,3 +1,10 @@
+## [3.0.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/3.0.1...3.0.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* do not let an empty schema source shadow the legacy schema ([c11f945](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/c11f945118d769247bfe8f5c8363ed0ca72d330a))
+
 ## [3.0.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/3.0.0...3.0.1) (2026-09-28)
 
 
