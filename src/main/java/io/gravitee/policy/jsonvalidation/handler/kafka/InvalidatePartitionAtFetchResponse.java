@@ -19,7 +19,7 @@ import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionConte
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.reactivex.rxjava3.core.Completable;
 import org.apache.kafka.common.protocol.Errors;
-import org.apache.kafka.common.record.MemoryRecords;
+import org.apache.kafka.common.record.internal.MemoryRecords;
 import org.apache.kafka.common.requests.FetchResponse;
 
 /**
