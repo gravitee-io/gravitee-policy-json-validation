@@ -37,6 +37,7 @@ import io.reactivex.rxjava3.core.Completable;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.InvalidRecordException;
+import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.protocol.Errors;
 import org.apache.kafka.common.requests.AbstractResponse;
 import org.apache.kafka.common.requests.FetchResponse;
@@ -99,7 +100,7 @@ public class KafkaValidationResultHandlerTest {
 
             verify(ctx).interruptWith(
                 argThat((ProduceResponse actualResponse) -> {
-                    var partitionResponses = actualResponse.data().responses().find(TEST_TOPIC).partitionResponses();
+                    var partitionResponses = actualResponse.data().responses().find(TEST_TOPIC, Uuid.ZERO_UUID).partitionResponses();
                     return partitionResponses
                         .stream()
                         .allMatch(partitionResponse -> partitionResponse.errorCode() == Errors.INVALID_RECORD.code());
