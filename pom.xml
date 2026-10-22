@@ -49,6 +49,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- ESM-289: temporary pin until gravitee-apim-bom ships kafka-clients 4.4 (ESM-288). Remove then. -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>4.4.0</version>
+            </dependency>
             <!-- Import bom to properly inherit all dependencies -->
             <dependency>
                 <groupId>io.gravitee.apim</groupId>
