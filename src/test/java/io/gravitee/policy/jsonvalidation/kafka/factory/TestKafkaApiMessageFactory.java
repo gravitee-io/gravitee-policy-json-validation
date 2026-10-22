@@ -15,13 +15,13 @@
  */
 package io.gravitee.policy.jsonvalidation.kafka.factory;
 
+import org.apache.kafka.common.compress.Compression;
 import org.apache.kafka.common.message.FetchResponseData;
 import org.apache.kafka.common.message.ProduceResponseData;
 import org.apache.kafka.common.protocol.Errors;
-import org.apache.kafka.common.record.CompressionType;
-import org.apache.kafka.common.record.MemoryRecords;
-import org.apache.kafka.common.record.RecordBatch;
-import org.apache.kafka.common.record.SimpleRecord;
+import org.apache.kafka.common.record.internal.MemoryRecords;
+import org.apache.kafka.common.record.internal.RecordBatch;
+import org.apache.kafka.common.record.internal.SimpleRecord;
 import org.apache.kafka.common.requests.FetchResponse;
 import org.apache.kafka.common.requests.ProduceResponse;
 
@@ -53,7 +53,7 @@ public class TestKafkaApiMessageFactory {
         topicResponse.partitions().add(createPartitionDataWithRecord(1));
         data.responses().add(topicResponse);
 
-        return new FetchResponse(data);
+        return FetchResponse.of(data);
     }
 
     private static ProduceResponseData.PartitionProduceResponse createFailedPartitionResponse(Errors errors, int partition) {
@@ -68,7 +68,7 @@ public class TestKafkaApiMessageFactory {
     private static FetchResponseData.PartitionData createPartitionDataWithRecord(int partitionIndex) {
         MemoryRecords records = MemoryRecords.withRecords(
             RecordBatch.CURRENT_MAGIC_VALUE,
-            CompressionType.NONE,
+            Compression.NONE,
             new SimpleRecord("key".getBytes(), "value".getBytes())
         );
 

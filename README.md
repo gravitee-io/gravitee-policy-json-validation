@@ -121,7 +121,8 @@ Strikethrough text indicates that a version is deprecated.
 | --- | ---  |
 |1.x|4.5 and lower |
 |2.x|4.6 and greater |
-|3.x|4.12 and greater |
+|3.x|4.12 to 4.13 |
+|4.x|4.14 and greater |
 
 
 ## Configuration options
