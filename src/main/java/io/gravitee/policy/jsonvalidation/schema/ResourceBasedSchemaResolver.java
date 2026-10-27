@@ -27,13 +27,13 @@ import io.gravitee.resource.schema_registry.api.Schema;
 import io.gravitee.resource.schema_registry.api.SchemaRegistryResource;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
+import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author GraviteeSource Team
  */
-@Slf4j
+@CustomLog
 @RequiredArgsConstructor
 public class ResourceBasedSchemaResolver implements SchemaResolver {
 
