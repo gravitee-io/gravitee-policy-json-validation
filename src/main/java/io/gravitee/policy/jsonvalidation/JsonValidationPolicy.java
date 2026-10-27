@@ -51,12 +51,12 @@ import io.reactivex.rxjava3.core.Maybe;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
 /**
  * @author GraviteeSource Team
  */
-@Slf4j
+@CustomLog
 public class JsonValidationPolicy extends JsonValidationPolicyV3 implements HttpPolicy, KafkaPolicy {
 
     public static final JsonMapper JSON_MAPPER = JsonMapper.builder().build();
