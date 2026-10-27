@@ -39,13 +39,11 @@ import io.gravitee.policy.jsonvalidation.configuration.schema.SchemaSourceType;
 import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.CustomLog;
 
+@CustomLog
 @SuppressWarnings("unused")
 public class JsonValidationPolicyV3 {
-
-    private static final Logger logger = LoggerFactory.getLogger(JsonValidationPolicyV3.class);
 
     static final String JSON_INVALID_PAYLOAD_KEY = "JSON_INVALID_PAYLOAD";
     static final String JSON_INVALID_FORMAT_KEY = "JSON_INVALID_FORMAT";
@@ -145,7 +143,7 @@ public class JsonValidationPolicyV3 {
                 }
             } catch (Exception ex) {
                 if (ex instanceof RuntimeException) {
-                    logger.error("Unexpected error during JSON validation", ex);
+                    log.error("Unexpected error during JSON validation", ex);
                 }
                 request.metrics().setMessage(ex.toString());
                 if (!straightMode) {
@@ -185,7 +183,7 @@ public class JsonValidationPolicyV3 {
                     errorMessage ->
                         policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, errorMessage, MediaType.TEXT_PLAIN)),
                     throwable -> {
-                        logger.warn("Error message evaluation failed: {}", throwable.getMessage(), throwable);
+                        log.warn("Error message evaluation failed: {}", throwable.getMessage(), throwable);
                         String fallbackMessage = httpStatusCode == 400 ? BAD_REQUEST : INTERNAL_ERROR;
                         policyChain.streamFailWith(PolicyResult.failure(key, httpStatusCode, fallbackMessage, MediaType.TEXT_PLAIN));
                     }
@@ -217,7 +215,7 @@ public class JsonValidationPolicyV3 {
             }
             return Optional.of(String.join("; ", details)).filter(s -> !s.isBlank());
         } catch (ProcessingException ex) {
-            logger.warn("Detailed validation report generation failed: {}", ex.getMessage(), ex);
+            log.warn("Detailed validation report generation failed: {}", ex.getMessage(), ex);
             return Optional.empty();
         }
     }

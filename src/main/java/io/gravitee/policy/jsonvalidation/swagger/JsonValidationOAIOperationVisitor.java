@@ -29,17 +29,15 @@ import io.swagger.v3.core.util.Json31;
 import io.swagger.v3.oas.models.SpecVersion;
 import io.swagger.v3.oas.models.parameters.RequestBody;
 import java.util.Optional;
+import lombok.CustomLog;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author Florent CHAMFROY (florent.chamfroy at graviteesource.com)
  * @author GraviteeSource Team
  */
+@CustomLog
 public class JsonValidationOAIOperationVisitor implements OAIOperationVisitor {
-
-    private static final Logger logger = LoggerFactory.getLogger(JsonValidationOAIOperationVisitor.class);
 
     private final ObjectMapper mapper = JsonMapper.builder()
         .configure(JsonWriteFeature.WRITE_NUMBERS_AS_STRINGS, true)
@@ -68,7 +66,7 @@ public class JsonValidationOAIOperationVisitor implements OAIOperationVisitor {
                 policy.setConfiguration(mapper.writeValueAsString(configuration));
                 return Optional.of(policy);
             } catch (JsonProcessingException e) {
-                logger.error("Failed to serialize json configuration", e);
+                log.error("Failed to serialize json configuration", e);
             }
         }
         return Optional.empty();
