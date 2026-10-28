@@ -42,33 +42,37 @@ public class ResourceBasedSchemaResolver implements SchemaResolver {
 
     @Override
     public Single<Schema> resolveSchema(BaseExecutionContext ctx) {
-        return resolveSchemaByName(ctx.getComponent(ResourceManager.class), ctx.getTemplateEngine());
+        return resolveSchemaByName(ctx, ctx.getTemplateEngine());
     }
 
     @Override
     public Single<Schema> resolveSchema(HttpMessageExecutionContext ctx, Message message) {
-        return resolveSchemaByName(ctx.getComponent(ResourceManager.class), ctx.getTemplateEngine(message));
+        return resolveSchemaByName(ctx, ctx.getTemplateEngine(message));
     }
 
     @Override
     public Single<Schema> resolveSchema(KafkaMessageExecutionContext ctx, KafkaMessage message) {
-        return resolveSchemaByName(ctx.getComponent(ResourceManager.class), ctx.getTemplateEngine(message));
+        return resolveSchemaByName(ctx, ctx.getTemplateEngine(message));
     }
 
-    private Single<Schema> resolveSchemaByName(ResourceManager resourceManager, TemplateEngine templateEngine) {
-        SchemaRegistryResource<?> schemaRegistryResource = resourceManager.getResource(resourceName, SchemaRegistryResource.class);
+    private Single<Schema> resolveSchemaByName(BaseExecutionContext ctx, TemplateEngine templateEngine) {
+        SchemaRegistryResource<?> schemaRegistryResource = ctx
+            .getComponent(ResourceManager.class)
+            .getResource(resourceName, SchemaRegistryResource.class);
         if (schemaRegistryResource == null) {
-            log.error("Unable to resolve schema registry resource: " + resourceName);
+            ctx.withLogger(log).error("Unable to resolve schema registry resource: " + resourceName);
             return Single.error(new JsonValidationException("Unable to resolve schema registry resource"));
         }
 
-        return resolveSchemaName(templateEngine)
+        return resolveSchemaName(ctx, templateEngine)
             .flatMap(schemaRegistryResource::getSchema)
             .switchIfEmpty(Single.error(new JsonValidationException("Unable to resolve schema")))
-            .doOnError(e -> log.error("Unable to resolve schema", e));
+            .doOnError(e -> ctx.withLogger(log).error("Unable to resolve schema", e));
     }
 
-    private Maybe<String> resolveSchemaName(TemplateEngine templateEngine) {
-        return templateEngine.eval(schemaMapping, String.class).doOnError(e -> log.error("Unable to resolve schema name", e));
+    private Maybe<String> resolveSchemaName(BaseExecutionContext ctx, TemplateEngine templateEngine) {
+        return templateEngine
+            .eval(schemaMapping, String.class)
+            .doOnError(e -> ctx.withLogger(log).error("Unable to resolve schema name", e));
     }
 }
