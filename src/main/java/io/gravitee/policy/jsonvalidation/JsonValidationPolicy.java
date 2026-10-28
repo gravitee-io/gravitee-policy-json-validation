@@ -227,7 +227,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
         if (report.isSuccess()) {
             return Completable.complete();
         }
-        log.debug("Invalid body '{}'", report);
+        ctx.withLogger(log).debug("Invalid body '{}'", report);
 
         // straightMode is only ever true for the HTTP RESPONSE scope (configuration.isStraightRespondMode())
         // and the message scopes (straightRespond field); REQUEST always passes false, so this guard
@@ -237,7 +237,7 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
             try {
                 detailedMessage = buildDetailedMessage(parsedSchema, jsonNode).orElse(null);
             } catch (RuntimeException ex) {
-                log.error("Unexpected error during JSON validation", ex);
+                ctx.withLogger(log).error("Unexpected error during JSON validation", ex);
             }
         }
 
@@ -255,11 +255,11 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                 try {
                     var report = validatePayload(message.content(), schema);
                     if (!report.isSuccess()) {
-                        log.debug("Invalid message body '{}'", report);
+                        ctx.withLogger(log).debug("Invalid message body '{}'", report);
                     }
                     return report.isSuccess() ? handler.onSuccess(ctx, message) : errorHandling(ctx, message, report.toString(), handler);
                 } catch (IOException | ProcessingException e) {
-                    log.error("Error occurred during message validation: {}", e.getMessage(), e);
+                    ctx.withLogger(log).error("Error occurred during message validation: {}", e.getMessage(), e);
                     return errorHandling(ctx, message, e.toString(), handler);
                 }
             });
@@ -341,7 +341,9 @@ public class JsonValidationPolicy extends JsonValidationPolicyV3 implements Http
                 .getTemplateEngine()
                 .eval(configuration.getErrorMessage(), String.class)
                 .onErrorResumeNext(e -> {
-                    log.warn("Failed to evaluate error message expression, falling back to default message: {}", e.getMessage());
+                    executionContext
+                        .withLogger(log)
+                        .warn("Failed to evaluate error message expression, falling back to default message: {}", e.getMessage());
                     return Maybe.just(defaultMessage);
                 })
             : Maybe.just(defaultMessage);
