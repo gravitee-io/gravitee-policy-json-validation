@@ -155,6 +155,9 @@ class JsonValidationPolicyTest {
 
         @BeforeEach
         void setUp() {
+            lenient()
+                .when(ctx.withLogger(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
             var metrics = Metrics.builder().build();
             lenient().when(ctx.metrics()).thenReturn(metrics);
             lenient().when(ctx.interruptWith(any())).thenReturn(Completable.error(new MyCustomException()));
@@ -560,6 +563,9 @@ class JsonValidationPolicyTest {
 
         @BeforeEach
         void setUp() {
+            lenient()
+                .when(ctx.withLogger(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
             var metrics = Metrics.builder().build();
             lenient().when(ctx.metrics()).thenReturn(metrics);
             lenient().when(ctx.interruptWith(any())).thenReturn(Completable.error(new MyCustomException()));
@@ -686,6 +692,9 @@ class JsonValidationPolicyTest {
 
         @BeforeEach
         void setUp() {
+            lenient()
+                .when(ctx.withLogger(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
             when(ctx.request()).thenReturn(request);
             when(request.onMessage(any())).thenReturn(Completable.complete());
         }
@@ -776,6 +785,9 @@ class JsonValidationPolicyTest {
 
         @BeforeEach
         void setUp() {
+            lenient()
+                .when(ctx.withLogger(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
             when(ctx.response()).thenReturn(response);
             lenient().when(response.onMessage(any())).thenReturn(Completable.complete());
         }
@@ -872,6 +884,9 @@ class JsonValidationPolicyTest {
 
         @BeforeEach
         void setUp() {
+            lenient()
+                .when(msgCtx.withLogger(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
             lenient().when(msgCtx.executionContext()).thenReturn(ctx);
 
             when(msgCtx.request()).thenReturn(messageRequest);
@@ -934,6 +949,9 @@ class JsonValidationPolicyTest {
 
         @BeforeEach
         void setUp() {
+            lenient()
+                .when(msgCtx.withLogger(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
             lenient().when(msgCtx.executionContext()).thenReturn(ctx);
 
             when(msgCtx.response()).thenReturn(messageResponse);
