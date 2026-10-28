@@ -429,6 +429,19 @@ spec:
 
 ## Changelog
 
+### [4.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.1...4.0.0-alpha.2) (2026-10-28)
+
+
+* build!: move to the gravitee orb 6 and parent 25 ([b29f877](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/b29f877b235ff9be156d6474538e7055818e9207))
+
+
+##### BREAKING CHANGES
+
+* compiled for Java 25; requires a Java 25 runtime (APIM
+4.14 or later).
+
+https://gravitee.atlassian.net/browse/ESM-289
+
 ### [4.0.0-alpha.1](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/3.0.2...4.0.0-alpha.1) (2026-10-27)
 
 
