@@ -34,7 +34,7 @@
     </parent>
 
     <properties>
-        <gravitee-apim.version>4.13.1</gravitee-apim.version>
+        <gravitee-apim.version>4.14.0-SNAPSHOT</gravitee-apim.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-resource-schema-registry-provider-api.version>1.0.1</gravitee-resource-schema-registry-provider-api.version>
         <gravitee-reactor-message.version>11.1.0</gravitee-reactor-message.version>
@@ -49,12 +49,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Temporary pin until gravitee-apim-bom ships kafka-clients 4.4. Remove then. -->
-            <dependency>
-                <groupId>org.apache.kafka</groupId>
-                <artifactId>kafka-clients</artifactId>
-                <version>4.4.0</version>
-            </dependency>
             <!-- Import bom to properly inherit all dependencies -->
             <dependency>
                 <groupId>io.gravitee.apim</groupId>
