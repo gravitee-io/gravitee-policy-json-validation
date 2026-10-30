@@ -1,3 +1,10 @@
+# [4.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.2...4.0.0-alpha.3) (2026-10-30)
+
+
+### Bug Fixes
+
+* **deps:** import the APIM 4.14 BOM and drop the kafka-clients pin ([2a12316](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/2a12316fa67951ce3ec6c46a9aa9cb5630aaf3bf)), closes [gravitee-api-management#21717](https://github.com/gravitee-api-management/issues/21717)
+
 # [4.0.0-alpha.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.1...4.0.0-alpha.2) (2026-10-28)
 
 
