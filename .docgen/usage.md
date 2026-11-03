@@ -31,6 +31,8 @@ validation error handling strategy for `SUBSCRIBE` and `PUBLISH` phases.
 | INVALIDATE_PARTITION | The entire partition is marked as invalid when a record validation error occurs. |
 | ADD_RECORD_HEADER    | A record header containing validation error information is added to the record.  |
 
+For a share consumer (share groups, KIP-932), `INVALIDATE_PARTITION` refuses the invalid record only: the gateway takes it out of the response and acknowledges it as `REJECT`, so the broker moves it to the dead-letter queue of the group, or archives it when the group has none. The other records of the partition are delivered.
+
 #### onPublish (PUBLISH phase)
 
 | Strategy                 | Description                                                                                    |
