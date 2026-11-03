@@ -21,14 +21,36 @@ import io.reactivex.rxjava3.core.Completable;
 import org.apache.kafka.common.protocol.Errors;
 import org.apache.kafka.common.record.internal.MemoryRecords;
 import org.apache.kafka.common.requests.FetchResponse;
+import org.apache.kafka.common.requests.ShareFetchResponse;
 
 /**
+ * Refuses an invalid record on its way to a consumer.
+ *
+ * <p>On a Fetch response, the partition of the record is answered with {@code CORRUPT_MESSAGE} and no record.
+ *
+ * <p>On a ShareFetch response (share groups, KIP-932), the record is marked as rejected and left in the response: the
+ * gateway takes it out before the response reaches the consumer and acknowledges it as {@code REJECT}, so the broker
+ * moves it to the group's dead-letter queue, or archives it. Invalidating the partition instead would hand the consumer
+ * acquired records without their content, which it neither processes nor acknowledges: the broker would deliver them
+ * again after their lock expires, over and over.
+ *
  * @author GraviteeSource Team
  */
 class InvalidatePartitionAtFetchResponse implements KafkaValidationResultHandler {
 
+    /** Internal attribute through which the gateway learns what to do with a record of a ShareFetch response. */
+    static final String SHARE_DISPOSITION_ATTRIBUTE = "gravitee.kafka.share.disposition";
+
+    /** The record is refused: the gateway acknowledges it as {@code REJECT}. */
+    static final String SHARE_DISPOSITION_REJECT = "REJECT";
+
     @Override
     public Completable onError(KafkaMessageExecutionContext ctx, KafkaMessage message, String errorMessage) {
+        if (ctx.executionContext().response().delegate() instanceof ShareFetchResponse) {
+            message.internalAttribute(SHARE_DISPOSITION_ATTRIBUTE, SHARE_DISPOSITION_REJECT);
+            return Completable.complete();
+        }
+
         KafkaSource currentSource = new KafkaSource(message.topic(), message.indexPartition());
 
         FetchResponse fetchResponse = ctx.executionContext().response().delegate();

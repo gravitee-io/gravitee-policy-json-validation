@@ -19,6 +19,7 @@ import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.reactive.api.message.Message;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.reactivex.rxjava3.annotations.Nullable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +33,8 @@ import lombok.ToString;
 @ToString
 @EqualsAndHashCode
 public class KafkaMessageStub implements KafkaMessage {
+
+    private final Map<String, Object> internalAttributes = new HashMap<>();
 
     private final Map<String, Buffer> recordHeaders = new ConcurrentHashMap<>();
     private Buffer content;
@@ -180,27 +183,31 @@ public class KafkaMessageStub implements KafkaMessage {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> T internalAttribute(String name) {
-        return null;
+        return (T) internalAttributes.get(name);
     }
 
     @Override
     public Message internalAttribute(String name, Object value) {
+        internalAttributes.put(name, value);
         return this;
     }
 
     @Override
     public Message removeInternalAttribute(String name) {
+        internalAttributes.remove(name);
         return this;
     }
 
     @Override
     public Set<String> internalAttributeNames() {
-        return Set.of();
+        return internalAttributes.keySet();
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> Map<String, T> internalAttributes() {
-        return Map.of();
+        return (Map<String, T>) internalAttributes;
     }
 }

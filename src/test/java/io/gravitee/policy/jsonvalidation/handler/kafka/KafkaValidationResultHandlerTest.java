@@ -34,6 +34,8 @@ import io.gravitee.gateway.reactive.api.context.kafka.KafkaResponse;
 import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeErrorHandling;
 import io.gravitee.policy.jsonvalidation.kafka.stub.KafkaMessageStub;
 import io.reactivex.rxjava3.core.Completable;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.InvalidRecordException;
@@ -43,6 +45,7 @@ import org.apache.kafka.common.requests.AbstractResponse;
 import org.apache.kafka.common.requests.FetchResponse;
 import org.apache.kafka.common.requests.ProduceRequest;
 import org.apache.kafka.common.requests.ProduceResponse;
+import org.apache.kafka.common.requests.ShareFetchResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -179,6 +182,18 @@ public class KafkaValidationResultHandlerTest {
                     return corruptMessageErrorSet && currentPartitionErrorSet && currentPartitionCleared && otherPartitionsRemainsUntouched;
                 })
             );
+        }
+
+        @Test
+        public void testOnErrorOnShareFetchResponse() {
+            when(response.delegate()).thenReturn(ShareFetchResponse.of(Errors.NONE, 0, new LinkedHashMap<>(), List.of(), 30_000));
+
+            handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
+
+            // A share consumer would neither process nor acknowledge the acquired records of an invalidated partition:
+            // the record is marked for the gateway to acknowledge it as REJECT instead
+            verify(ctx, never()).interruptWith(any(AbstractResponse.class));
+            assertThat(message.<String>internalAttribute("gravitee.kafka.share.disposition")).isEqualTo("REJECT");
         }
     }
 
