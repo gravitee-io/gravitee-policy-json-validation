@@ -431,6 +431,13 @@ spec:
 
 ## Changelog
 
+### [4.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.3...4.0.0-alpha.4) (2026-11-09)
+
+
+##### Features
+
+* reject an invalid record handed to a share consumer ([28a6fb5](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/28a6fb58101cdd8d7718ffd0ae18a2770eeb4d27))
+
 ### [4.0.0-alpha.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.2...4.0.0-alpha.3) (2026-10-30)
 
 
