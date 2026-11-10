@@ -18,9 +18,12 @@ package io.gravitee.policy.jsonvalidation.handler.kafka;
 import static org.apache.kafka.common.requests.AbstractResponse.DEFAULT_THROTTLE_TIME;
 
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
+import io.gravitee.gateway.reactive.api.context.kafka.topicidentity.TopicIdentity;
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.reactivex.rxjava3.core.Completable;
 import org.apache.kafka.common.InvalidRecordException;
+import org.apache.kafka.common.Uuid;
+import org.apache.kafka.common.message.ProduceResponseData;
 import org.apache.kafka.common.requests.ProduceRequest;
 import org.apache.kafka.common.requests.ProduceResponse;
 
@@ -41,16 +44,32 @@ class FailProduceRequestWithInvalidRecord implements KafkaValidationResultHandle
         errorResponse
             .data()
             .responses()
-            .forEach(topicResponse ->
+            .forEach(topicResponse -> {
+                String topicName = topicName(ctx, topicResponse);
                 topicResponse
                     .partitionResponses()
                     .forEach(partitionResponse -> {
-                        if (!failedSource.isSameTopicAndPartitionAs(topicResponse, partitionResponse)) {
+                        if (!failedSource.isSameTopicAndPartitionAs(topicName, partitionResponse)) {
                             partitionResponse.setErrorMessage("Another partition contains invalid record(s)");
                         }
-                    })
-            );
+                    });
+            });
 
         return ctx.executionContext().interruptWith(errorResponse);
+    }
+
+    /** From PRODUCE v13 a topic is named by its id only: its name comes from the gateway's topic registry. */
+    private static String topicName(KafkaMessageExecutionContext ctx, ProduceResponseData.TopicProduceResponse topicResponse) {
+        Uuid topicId = topicResponse.topicId();
+        if (topicId == null || Uuid.ZERO_UUID.equals(topicId)) {
+            return topicResponse.name();
+        }
+        return ctx
+            .executionContext()
+            .connectionContext()
+            .topicIdentityRegistry()
+            .findById(topicId)
+            .map(TopicIdentity::name)
+            .orElse(topicResponse.name());
     }
 }

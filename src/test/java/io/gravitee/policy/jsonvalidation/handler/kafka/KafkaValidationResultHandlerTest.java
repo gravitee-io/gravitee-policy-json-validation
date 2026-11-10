@@ -27,19 +27,24 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+import io.gravitee.gateway.reactive.api.context.kafka.KafkaConnectionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaExecutionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionContext;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaRequest;
 import io.gravitee.gateway.reactive.api.context.kafka.KafkaResponse;
+import io.gravitee.gateway.reactive.api.context.kafka.topicidentity.TopicIdentity;
+import io.gravitee.gateway.reactive.api.context.kafka.topicidentity.TopicIdentityRegistry;
 import io.gravitee.policy.jsonvalidation.configuration.errorhandling.NativeErrorHandling;
 import io.gravitee.policy.jsonvalidation.kafka.stub.KafkaMessageStub;
 import io.reactivex.rxjava3.core.Completable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.InvalidRecordException;
 import org.apache.kafka.common.Uuid;
+import org.apache.kafka.common.message.ProduceResponseData;
 import org.apache.kafka.common.protocol.Errors;
 import org.apache.kafka.common.requests.AbstractResponse;
 import org.apache.kafka.common.requests.FetchResponse;
@@ -109,6 +114,32 @@ public class KafkaValidationResultHandlerTest {
                         .allMatch(partitionResponse -> partitionResponse.errorCode() == Errors.INVALID_RECORD.code());
                 })
             );
+        }
+
+        @Test
+        public void testOnErrorNamesTheInvalidPartitionOfATopicGivenById(
+            @Mock KafkaConnectionContext connectionContext,
+            @Mock TopicIdentityRegistry registry
+        ) {
+            // From PRODUCE v13 the response names its topics by id only.
+            Uuid topicId = Uuid.randomUuid();
+            ProduceResponse failedProduceResponse = createFailedProduceResponseWithTwoPartitions(Errors.INVALID_RECORD);
+            failedProduceResponse
+                .data()
+                .responses()
+                .forEach(topicResponse -> topicResponse.setName("").setTopicId(topicId));
+            lenient().when(produceRequest.getErrorResponse(anyInt(), any(InvalidRecordException.class))).thenReturn(failedProduceResponse);
+            when(ctx.connectionContext()).thenReturn(connectionContext);
+            when(connectionContext.topicIdentityRegistry()).thenReturn(registry);
+            when(registry.findById(topicId)).thenReturn(Optional.of(new TopicIdentity(topicId, TEST_TOPIC, TopicIdentity.Source.BROKER)));
+            when(ctx.interruptWith(any(ProduceResponse.class))).thenReturn(Completable.complete());
+
+            handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
+
+            var partitions = failedProduceResponse.data().responses().iterator().next().partitionResponses();
+            assertThat(partitions)
+                .extracting(ProduceResponseData.PartitionProduceResponse::errorMessage)
+                .containsExactly(null, "Another partition contains invalid record(s)");
         }
     }
 
