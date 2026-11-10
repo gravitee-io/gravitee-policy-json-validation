@@ -23,11 +23,8 @@ import org.apache.kafka.common.message.ProduceResponseData;
  * @author GraviteeSource Team
  */
 record KafkaSource(String topic, int partition) {
-    public boolean isSameTopicAndPartitionAs(
-        ProduceResponseData.TopicProduceResponse topicResponse,
-        ProduceResponseData.PartitionProduceResponse partitionResponse
-    ) {
-        return Objects.equals(topicResponse.name(), topic) && partitionResponse.index() == partition;
+    public boolean isSameTopicAndPartitionAs(String topicName, ProduceResponseData.PartitionProduceResponse partitionResponse) {
+        return Objects.equals(topicName, topic) && partitionResponse.index() == partition;
     }
 
     public boolean isSameTopicAs(FetchResponseData.FetchableTopicResponse topicResponse) {
