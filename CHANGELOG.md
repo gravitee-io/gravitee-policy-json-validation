@@ -1,3 +1,10 @@
+# [4.0.0-alpha.5](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.4...4.0.0-alpha.5) (2026-11-12)
+
+
+### Bug Fixes
+
+* name the invalid partition of a produce topic given by id ([bee141e](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/bee141e38f398503258c3e383c9cbd5b245645d1))
+
 # [4.0.0-alpha.4](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.3...4.0.0-alpha.4) (2026-11-09)
 
 
