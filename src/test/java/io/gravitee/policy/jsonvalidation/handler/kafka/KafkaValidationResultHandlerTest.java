@@ -117,6 +117,18 @@ public class KafkaValidationResultHandlerTest {
         }
 
         @Test
+        public void testOnErrorWithAcksZero() {
+            // acks=0: Kafka builds no error response, as the producer expects none.
+            when(produceRequest.getErrorResponse(anyInt(), any(InvalidRecordException.class))).thenReturn(null);
+            when(ctx.interruptWith(Errors.INVALID_RECORD)).thenReturn(Completable.complete());
+
+            handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
+
+            verify(ctx).interruptWith(Errors.INVALID_RECORD);
+            verify(ctx, never()).interruptWith(any(AbstractResponse.class));
+        }
+
+        @Test
         public void testOnErrorNamesTheInvalidPartitionOfATopicGivenById(
             @Mock KafkaConnectionContext connectionContext,
             @Mock TopicIdentityRegistry registry
