@@ -1,3 +1,10 @@
+## [3.0.3](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/3.0.2...3.0.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* refuse an invalid record from an acks=0 producer without a NullPointerException ([13172fe](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/13172fe2dfd55e190356db3d24d9945ef22b5e4b))
+
 ## [3.0.2](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/3.0.1...3.0.2) (2026-10-14)
 
 
