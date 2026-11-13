@@ -21,6 +21,7 @@ import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionConte
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.reactivex.rxjava3.core.Completable;
 import org.apache.kafka.common.InvalidRecordException;
+import org.apache.kafka.common.protocol.Errors;
 import org.apache.kafka.common.requests.ProduceRequest;
 import org.apache.kafka.common.requests.ProduceResponse;
 
@@ -31,13 +32,16 @@ class FailProduceRequestWithInvalidRecord implements KafkaValidationResultHandle
 
     @Override
     public Completable onError(KafkaMessageExecutionContext ctx, KafkaMessage message, String errorMessage) {
-        KafkaSource failedSource = new KafkaSource(message.topic(), message.indexPartition());
-
         Throwable throwable = new InvalidRecordException("Partition contains invalid record(s) at offset: " + message.offset());
 
         ProduceRequest produceRequest = ctx.executionContext().request().delegate();
         ProduceResponse errorResponse = produceRequest.getErrorResponse(DEFAULT_THROTTLE_TIME, throwable);
+        if (errorResponse == null) {
+            // acks=0: the producer expects no response body.
+            return ctx.executionContext().interruptWith(Errors.INVALID_RECORD);
+        }
 
+        KafkaSource failedSource = new KafkaSource(message.topic(), message.indexPartition());
         errorResponse
             .data()
             .responses()
