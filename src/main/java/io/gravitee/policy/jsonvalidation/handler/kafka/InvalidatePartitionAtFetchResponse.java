@@ -19,14 +19,16 @@ import io.gravitee.gateway.reactive.api.context.kafka.KafkaMessageExecutionConte
 import io.gravitee.gateway.reactive.api.message.kafka.KafkaMessage;
 import io.reactivex.rxjava3.core.Completable;
 import org.apache.kafka.common.protocol.Errors;
-import org.apache.kafka.common.record.internal.MemoryRecords;
-import org.apache.kafka.common.requests.FetchResponse;
 import org.apache.kafka.common.requests.ShareFetchResponse;
 
 /**
  * Refuses an invalid record on its way to a consumer.
  *
- * <p>On a Fetch response, the partition of the record is answered with {@code CORRUPT_MESSAGE} and no record.
+ * <p>On a Fetch response, the policy interrupts with {@code CORRUPT_MESSAGE}: the gateway answers the partition of the
+ * record with that error, from the record's offset, and delivers the records before it and the other partitions.
+ * The consumer's {@code poll()} raises for that partition until it seeks past the record.
+ * A gateway that cannot narrow the error to the partition answers the whole response with it instead: the consumer
+ * then gets nothing and fetches again, so no invalid record is ever delivered.
  *
  * <p>On a ShareFetch response (share groups, KIP-932), the record is marked as rejected and left in the response: the
  * gateway takes it out before the response reaches the consumer and acknowledges it as {@code REJECT}, so the broker
@@ -51,23 +53,6 @@ class InvalidatePartitionAtFetchResponse implements KafkaValidationResultHandler
             return Completable.complete();
         }
 
-        KafkaSource currentSource = new KafkaSource(message.topic(), message.indexPartition());
-
-        FetchResponse fetchResponse = ctx.executionContext().response().delegate();
-        fetchResponse.data().setErrorCode(Errors.CORRUPT_MESSAGE.code());
-
-        fetchResponse
-            .data()
-            .responses()
-            .stream()
-            .filter(currentSource::isSameTopicAs)
-            .findFirst()
-            .flatMap(topicResponse -> topicResponse.partitions().stream().filter(currentSource::isSamePartitionAs).findFirst())
-            .ifPresent(partitionData -> {
-                partitionData.setErrorCode(Errors.CORRUPT_MESSAGE.code());
-                partitionData.setRecords(MemoryRecords.EMPTY);
-            });
-
-        return ctx.executionContext().interruptWith(fetchResponse);
+        return ctx.executionContext().interruptWith(Errors.CORRUPT_MESSAGE);
     }
 }

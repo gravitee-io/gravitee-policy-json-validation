@@ -981,7 +981,7 @@ class JsonValidationPolicyTest {
             JsonValidationPolicy policy = new JsonValidationPolicy(configuration);
             KafkaMessageStub message = new KafkaMessageStub("{\"name2\":\"foo\"}");
 
-            when(ctx.interruptWith(any(AbstractResponse.class))).thenReturn(Completable.error(new MyCustomException()));
+            when(ctx.interruptWith(Errors.CORRUPT_MESSAGE)).thenReturn(Completable.error(new MyCustomException()));
 
             policy.onMessageResponse(msgCtx).test().assertComplete();
 
