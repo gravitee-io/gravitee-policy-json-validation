@@ -39,9 +39,7 @@ import io.gravitee.policy.jsonvalidation.kafka.stub.KafkaMessageStub;
 import io.reactivex.rxjava3.core.Completable;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.InvalidRecordException;
 import org.apache.kafka.common.Uuid;
 import org.apache.kafka.common.message.ProduceResponseData;
@@ -187,43 +185,18 @@ public class KafkaValidationResultHandlerTest {
 
         @Test
         public void testOnError() {
-            when(ctx.interruptWith(any(FetchResponse.class))).thenReturn(Completable.complete());
+            FetchResponse fetchResponse = createFetchResponseWithTwoPartitions();
+            when(response.delegate()).thenReturn(fetchResponse);
+            when(ctx.interruptWith(Errors.CORRUPT_MESSAGE)).thenReturn(Completable.complete());
 
             handler.onError(msgCtx, message, "Validation failed").test().assertComplete();
 
-            verify(ctx).interruptWith(
-                argThat((FetchResponse actualResponse) -> {
-                    var topicResponse = actualResponse
-                        .data()
-                        .responses()
-                        .stream()
-                        .filter(resp -> Objects.equals(resp.topic(), TEST_TOPIC))
-                        .findFirst()
-                        .orElseThrow();
-
-                    var currentPartition = topicResponse
-                        .partitions()
-                        .stream()
-                        .filter(partitionData -> partitionData.partitionIndex() == message.indexPartition())
-                        .findFirst()
-                        .orElseThrow();
-
-                    var otherPartitions = topicResponse
-                        .partitions()
-                        .stream()
-                        .filter(partitionData -> partitionData.partitionIndex() != message.indexPartition())
-                        .collect(Collectors.toSet());
-
-                    boolean corruptMessageErrorSet = actualResponse.error() == Errors.CORRUPT_MESSAGE;
-                    boolean currentPartitionErrorSet = currentPartition.errorCode() == Errors.CORRUPT_MESSAGE.code();
-                    boolean currentPartitionCleared = currentPartition.records().sizeInBytes() == 0;
-
-                    boolean otherPartitionsRemainsUntouched = otherPartitions
-                        .stream()
-                        .allMatch(partition -> partition.errorCode() == Errors.NONE.code() && partition.records().sizeInBytes() > 0);
-
-                    return corruptMessageErrorSet && currentPartitionErrorSet && currentPartitionCleared && otherPartitionsRemainsUntouched;
-                })
+            // The gateway narrows the error to the partition and offset of the record: the response is left as is
+            verify(ctx).interruptWith(Errors.CORRUPT_MESSAGE);
+            verify(ctx, never()).interruptWith(any(AbstractResponse.class));
+            assertThat(fetchResponse.error()).isEqualTo(Errors.NONE);
+            assertThat(fetchResponse.data().responses().get(0).partitions()).allMatch(
+                partition -> partition.errorCode() == Errors.NONE.code() && partition.records().sizeInBytes() > 0
             );
         }
 

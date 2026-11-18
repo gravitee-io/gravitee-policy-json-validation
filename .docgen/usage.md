@@ -28,8 +28,10 @@ validation error handling strategy for `SUBSCRIBE` and `PUBLISH` phases.
 
 | Strategy             | Description                                                                      |
 |----------------------|----------------------------------------------------------------------------------|
-| INVALIDATE_PARTITION | The entire partition is marked as invalid when a record validation error occurs. |
+| INVALIDATE_PARTITION | The partition fails with `CORRUPT_MESSAGE` at the invalid record's offset. |
 | ADD_RECORD_HEADER    | A record header containing validation error information is added to the record.  |
+
+For a consumer, `INVALIDATE_PARTITION` delivers the records of the partition up to the invalid one, then answers the partition with a `CORRUPT_MESSAGE` error at the offset of the invalid record. The consumer's `poll()` raises a `KafkaException` ("Encountered corrupt message when fetching offset ...") for that partition until the application seeks past the record. The other partitions are delivered. Before APIM 4.14, the gateway answers the whole fetch with the error instead: the consumer receives nothing and fetches again, without seeing any error.
 
 For a share consumer (share groups, KIP-932), `INVALIDATE_PARTITION` refuses the invalid record only: the gateway takes it out of the response and acknowledges it as `REJECT`, so the broker moves it to the dead-letter queue of the group, or archives it when the group has none. The other records of the partition are delivered.
 
