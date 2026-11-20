@@ -16,7 +16,6 @@
 package io.gravitee.policy.jsonvalidation.handler.kafka;
 
 import java.util.Objects;
-import org.apache.kafka.common.message.FetchResponseData;
 import org.apache.kafka.common.message.ProduceResponseData;
 
 /**
@@ -25,13 +24,5 @@ import org.apache.kafka.common.message.ProduceResponseData;
 record KafkaSource(String topic, int partition) {
     public boolean isSameTopicAndPartitionAs(String topicName, ProduceResponseData.PartitionProduceResponse partitionResponse) {
         return Objects.equals(topicName, topic) && partitionResponse.index() == partition;
-    }
-
-    public boolean isSameTopicAs(FetchResponseData.FetchableTopicResponse topicResponse) {
-        return Objects.equals(topicResponse.topic(), topic);
-    }
-
-    public boolean isSamePartitionAs(FetchResponseData.PartitionData partitionData) {
-        return partitionData.partitionIndex() == partition;
     }
 }
