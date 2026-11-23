@@ -433,6 +433,13 @@ spec:
 
 ## Changelog
 
+### [4.0.0-alpha.7](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.6...4.0.0-alpha.7) (2026-11-23)
+
+
+##### Bug Fixes
+
+* let the gateway narrow an invalid record to its partition instead of stalling the consumer ([49fd358](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/49fd35880c3e093d8cb6542440b639640cf61fd2))
+
 ### [4.0.0-alpha.6](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.5...4.0.0-alpha.6) (2026-11-13)
 
 
