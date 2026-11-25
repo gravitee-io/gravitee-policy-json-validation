@@ -34,7 +34,7 @@
     </parent>
 
     <properties>
-        <gravitee-apim.version>4.14.0-SNAPSHOT</gravitee-apim.version>
+        <gravitee-apim.version>4.14.0</gravitee-apim.version>
         <gravitee-resource-api.version>1.1.0</gravitee-resource-api.version>
         <gravitee-resource-schema-registry-provider-api.version>1.0.1</gravitee-resource-schema-registry-provider-api.version>
         <gravitee-reactor-message.version>11.1.0</gravitee-reactor-message.version>
