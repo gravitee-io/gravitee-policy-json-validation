@@ -1,3 +1,33 @@
+# [4.0.0](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/3.0.3...4.0.0) (2026-11-25)
+
+
+### Bug Fixes
+
+* **deps:** build on the released APIM 4.14.0 BOM ([8d9d34a](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/8d9d34abdd24864b59ad53c34e8f96b14ffd2610))
+* **deps:** import the APIM 4.14 BOM and drop the kafka-clients pin ([b6f5d14](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/b6f5d14cce51d59afd629278d00a38e9b545bc92)), closes [gravitee-api-management#21717](https://github.com/gravitee-api-management/issues/21717)
+* let the gateway narrow an invalid record to its partition instead of stalling the consumer ([ca39e53](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/ca39e535cc482a8fedc6dbfc099b1e508c0ec543))
+* name the invalid partition of a produce topic given by id ([1ac0ad6](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/1ac0ad6ef95f0edddd20c903fb32edb5d14b4418))
+
+
+* build!: move to the gravitee orb 6 and parent 25 ([a2044e8](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/a2044e80517582968f374ccdf8705388a6f94673))
+* feat!: run on Kafka 4.4 ([d398a28](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/d398a2887d50fef01476e13bfeda2c604b38f233))
+
+
+### Features
+
+* reject an invalid record handed to a share consumer ([49a2e71](https://github.com/gravitee-io/gravitee-policy-json-validation/commit/49a2e71fb8ee34a4a6ae7724bc52a8b1d0074cb8))
+
+
+### BREAKING CHANGES
+
+* compiled for Java 25; requires a Java 25 runtime (APIM
+4.14 or later).
+
+https://gravitee.atlassian.net/browse/ESM-289
+* requires APIM 4.14 or later. Use 3.x on APIM 4.12 to 4.13.
+
+https://gravitee.atlassian.net/browse/ESM-289
+
 # [4.0.0-alpha.7](https://github.com/gravitee-io/gravitee-policy-json-validation/compare/4.0.0-alpha.6...4.0.0-alpha.7) (2026-11-23)
 
 
